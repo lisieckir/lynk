@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `REVIEW` |
 | Priorytet | `P1` |
 | Owner | GPT-6 Luna |
 | Faza | Phase 2 |
@@ -47,6 +47,7 @@ bez implementowania jeszcze Linkding API ani UI.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `IN_PROGRESS` | GPT-6 Luna | Rozpoczęto implementację domeny |
+| 2026-11-25 | `REVIEW` | OpenCode | Implementacja gotowa do niezależnego review |
 
 ## Blockery
 

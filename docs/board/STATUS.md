@@ -19,7 +19,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P1-005](tasks/P1-005-makefile.md) | P1 | Makefile jako interfejs projektu | Tidepool Alpha Free | `DONE` | P1-001 |
 | [P1-006](tasks/P1-006-docker-compose.md) | P1 | Dockerfile i Compose | Tidepool Alpha Free | `DONE` | P1-002, P1-003, P1-004, P1-005 |
 | [P1-007](tasks/P1-007-phase1-validation.md) | P1 | Walidacja i pomiary Phase 1 | GPT-6 Luna | `BLOCKED` | P1-001–P1-006 |
-| [P2-001](tasks/P2-001-bookmark-domain.md) | P1 | Domena zakładek, repository i service | GPT-6 Luna | `IN_PROGRESS` | P1-003 |
+| [P2-001](tasks/P2-001-bookmark-domain.md) | P1 | Domena zakładek, repository i service | GPT-6 Luna | `REVIEW` | P1-003 |
 
 ## Rejestr blockerów i decyzji
 
@@ -51,3 +51,4 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | Przydzielono P1-007 agentowi GPT-6 Luna | OpenCode |
 | 2026-11-25 | P1-007 zablokowane przez brak Docker Engine/Compose i golangci-lint | GPT-6 Luna |
 | 2026-11-25 | P2-001 uruchomione równolegle; P1-007 pozostaje blockerem release validation | OpenCode |
+| 2026-11-25 | P2-001 przekazano do niezależnego review | OpenCode |

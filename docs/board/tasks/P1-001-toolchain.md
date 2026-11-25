@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `REVIEW` |
+| Status | `DONE` |
 | Priorytet | `P1` |
 | Owner | Big Pickle |
 | Faza | Phase 1 |
@@ -65,16 +65,17 @@ smoke-test potwierdzający kompilację i czysty powrót entrypointu.
 | 2026-11-25 | `IN_PROGRESS` | Big Pickle | Agent rozpoczął pracę w izolowanym worktree |
 | 2026-11-25 | `REVIEW` | OpenCode | Implementacja gotowa do niezależnego code review |
 | 2026-11-25 | `REVIEW` | Big Pickle | Poprawki po code review: dokumentacja wersji jako prowizorycznych, README, ignorowanie `.env`, smoke-test i ponowna weryfikacja |
+| 2026-11-25 | `DONE` | Flint 40B Free | P1-003 potwierdziło pin SQLite; implementacja i pełna weryfikacja zaakceptowane |
 
 ## Blockery
 
-Implementacja zaakceptowana przez code review. Finalne zamknięcie zadania
-wymaga potwierdzenia prowizorycznego pinu Go/SQLite w P1-003.
+Implementacja zaakceptowana przez code review. Pin Go/SQLite został
+potwierdzony przez P1-003 na Linux AMD64.
 
 ## Decision log
 
 | Data | Decyzja/pytanie | Status | Akceptacja PO |
 |---|---|---|---|
-| 2026-11-25 | Go `1.27.4` i `modernc.org/sqlite` `v1.63.0` jako prowizoryczne piny P1-001 | P1-003 ma zweryfikować FTS5/WAL/backup; decyzja nie jest finalna | — |
+| 2026-11-25 | Go `1.27.4` i `modernc.org/sqlite` `v1.63.0` jako piny P1-001 | P1-003 potwierdziło FTS5/WAL/backup na Linux AMD64; cross-platform pozostaje release follow-up | Flint 40B Free |
 | 2026-11-25 | Dodanie dyrektywy `toolchain` w `go.mod` | Nie dodano: `go 1.27.4` wyznacza minimalną wersję, a dyrektywa mogłaby wymusić przełączenie toolchainu; patrz `docs/development.md` | — |
 | 2026-11-25 | Niezależny code review po poprawkach | APPROVE warunkowo; brak blockerów technicznych, pin oczekuje na P1-003 | Flint 40B Free |

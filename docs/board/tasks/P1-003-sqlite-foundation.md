@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `DONE` |
 | Priorytet | `P0` |
 | Owner | Big Pickle |
 | Faza | Phase 1 |
@@ -25,13 +25,13 @@ sterownika `modernc.org/sqlite`.
 
 ## Kryteria akceptacji
 
-- [ ] Nowa baza inicjalizuje się automatycznie.
-- [ ] Istniejąca baza nie jest nadpisywana.
-- [ ] Migracje są wykonywane w kolejności i są odporne na restart.
-- [ ] Test potwierdza `PRAGMA foreign_keys = ON`.
-- [ ] Test potwierdza WAL i `busy_timeout`.
-- [ ] Test `CREATE VIRTUAL TABLE ... USING fts5` przechodzi.
-- [ ] Backup uwzględnia WAL i przechodzi `PRAGMA integrity_check`.
+- [x] Nowa baza inicjalizuje się automatycznie.
+- [x] Istniejąca baza nie jest nadpisywana.
+- [x] Migracje są wykonywane w kolejności i są odporne na restart.
+- [x] Test potwierdza `PRAGMA foreign_keys = ON`.
+- [x] Test potwierdza WAL i `busy_timeout`.
+- [x] Test `CREATE VIRTUAL TABLE ... USING fts5` przechodzi.
+- [x] Backup uwzględnia WAL i przechodzi `PRAGMA integrity_check`.
 
 ## Weryfikacja
 
@@ -44,13 +44,16 @@ bazie.
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Oczekuje na P1-001 |
 | 2026-11-25 | `IN_PROGRESS` | Big Pickle | Rozpoczęto walidację drivera, SQLite foundation i migracji |
+| 2026-11-25 | `DONE` | Flint 40B Free | Review zaakceptował poprawki; 16 testów i race detector przechodzą |
 
 ## Blockery
 
-Brak.
+Brak. Driver `modernc.org/sqlite v1.63.0` zweryfikowany na Linux AMD64.
 
 ## Decision log
 
 | Data | Decyzja/pytanie | Status | Akceptacja PO |
 |---|---|---|---|
-| — | Online Backup API czy `VACUUM INTO` jako główna ścieżka | Otwarte | — |
+| 2026-11-25 | Online Backup API czy `VACUUM INTO` jako główna ścieżka | Wybrano SQLite Online Backup API; WAL/integrity testy przechodzą | Flint 40B Free |
+| 2026-11-25 | FTS5 synchronizacja tagów | Dodano migrację `0002_bookmark_tag_fts_triggers.sql` i testy regresyjne | Flint 40B Free |
+| 2026-11-25 | Prawa nowych plików bazy | `0600`; istniejące prawa są zachowywane | Flint 40B Free |

@@ -1,7 +1,7 @@
 # Lynk technical architecture
 
-Status: Phase 0 proposal with the P1-001 bootstrap implemented. Toolchain and
-driver version pins are provisional pending P1-003 validation.
+Status: Phase 1 foundation in progress. P1-001 and P1-003 are implemented;
+Go/SQLite pins are validated on Linux AMD64.
 
 ## Goals and constraints
 
@@ -98,14 +98,15 @@ Use Go `html/template`, HTMX and plain CSS. Embed or package assets in the
 binary where practical. No Node.js runtime is needed for application or
 development.
 
-## SQLite driver decision (provisional)
+## SQLite driver decision (validated)
 
 **Proposal: use `modernc.org/sqlite`.**
 
-P1-001 pins Go `1.27.4` and `modernc.org/sqlite` `v1.63.0` as initial bootstrap
-values. These pins are **provisional**, not a silently final decision; exact
-details are recorded in [development.md](development.md). P1-003 must validate
-them with FTS5/WAL/backup smoke tests before the choice is treated as settled.
+P1-001 pins Go `1.27.4` and `modernc.org/sqlite` `v1.63.0`. P1-003 validated
+these pins on Linux AMD64 with FTS5, WAL, foreign keys, busy timeout and the
+SQLite online backup API. Exact details are recorded in
+[development.md](development.md). Cross-platform validation remains a release
+follow-up.
 
 Reasons:
 
@@ -119,15 +120,15 @@ Risks:
 
 * the dependency is larger than a thin CGO wrapper;
 * driver-specific backup interfaces must be isolated behind `internal/database`;
-* the exact supported Go/SQLite versions are only provisionally pinned and
-  must be verified in Phase 1;
+* the exact supported Go/SQLite versions are validated on Linux AMD64 and
+  should be rechecked for other release targets;
 * FTS5 and WAL must be tested on the target build, not assumed from online
   documentation.
 
 Phase 1 must run a smoke test for `PRAGMA compile_options`, `CREATE VIRTUAL
-TABLE ... USING fts5`, WAL mode, foreign keys and backup/restore. A driver or
-version change remains possible if that test fails; no change to `SPEC.md` is
-proposed.
+ TABLE ... USING fts5`, WAL mode, foreign keys and backup/restore. These smoke
+ tests passed for the current Linux AMD64 target; no change to `SPEC.md` is
+ proposed.
 
 ## Docker architecture
 
@@ -172,8 +173,8 @@ CSRF/session controls and rate limiting to the relevant surfaces.
 
 ### Production Go
 
-* `modernc.org/sqlite` v1.63.0 — SQLite driver and FTS5-capable engine
-  (provisional pin pending P1-003 validation).
+* `modernc.org/sqlite` v1.63.0 — SQLite driver and FTS5-capable engine,
+  validated on Linux AMD64 in P1-003.
 * no web framework; use standard `net/http`, `database/sql`,
   `html/template`, `log/slog`, `crypto`, `embed` and `context`.
 
@@ -188,10 +189,10 @@ No JavaScript package manager is required.
 
 ## Unresolved technical decisions
 
-1. Confirm or revise the provisional Go 1.27.4 and modernc.org/sqlite v1.63.0
-   pins after the P1-003 smoke tests.
-2. Whether to use SQLite online backup or `VACUUM INTO` as the primary backup
-   implementation; both must be tested against WAL.
+1. Cross-platform confirmation of Go 1.27.4 and modernc.org/sqlite v1.63.0
+   before release targets beyond Linux AMD64.
+2. Whether any future backup mode should complement the selected SQLite online
+   backup API; the current primary implementation is settled.
 3. Whether token lookup uses a keyed digest (HMAC) or SHA-256 plus a unique
    prefix. The wire format and revocation requirement are fixed; storage
    detail is still open.

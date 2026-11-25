@@ -1,7 +1,8 @@
 # Development and toolchain
 
-Status: bootstrap (P1-001). The versions below are **provisional** pending the
-P1-003 SQLite validation; they are not a final architectural decision.
+Status: P1-003 SQLite foundation implemented. The versions below were validated
+by the P1-003 smoke tests (FTS5, WAL, foreign keys, busy timeout and online
+backup); no `SPEC.md` or driver-version change was made.
 
 ## Module and pinned versions
 
@@ -9,14 +10,18 @@ P1-003 SQLite validation; they are not a final architectural decision.
 |---|---|---|
 | Module path | `github.com/lisieckir/lynk` | set in `go.mod` |
 | Go | `1.27.4` | `go 1.27.4` in `go.mod` |
-| SQLite driver | `modernc.org/sqlite v1.63.0` | pinned provisionally in `go.mod` |
+| SQLite driver | `modernc.org/sqlite v1.63.0` | unchanged pin, validated by P1-003 |
 
-The driver is kept in the module graph by `cmd/lynk/sqlite_pin.go`, which is
-build-tagged `tools` so that no database driver is registered in the current
-bootstrap entrypoint. P1-003 replaces that pin with the real `internal/database`
-setup and must verify FTS5, WAL, pragmas and backup with these exact versions.
-If validation fails, the version decision is reopened; see
-[architecture.md](architecture.md) and the P1-001 decision log.
+The driver is registered and used by `internal/database`, which opens it through
+`database/sql`, applies pragmas on every pooled connection, runs tracked
+migrations and provides the consistent backup helper. The former build-tagged
+`cmd/lynk/sqlite_pin.go` pin was removed: it existed only to keep the
+provisional dependency in the module graph before the real package existed.
+The application entrypoint is still an unwired bootstrap; configuration,
+logging and HTTP are later Phase 1 tasks.
+
+If a future validation fails, the version decision must be reopened explicitly;
+see [architecture.md](architecture.md) and the P1-001 decision log.
 
 ## Reproducibility
 
@@ -34,6 +39,7 @@ the toolchain does not support.
 gofmt -l .
 go build ./...
 go test ./...
+go test -race ./...
 go vet ./...
 go mod tidy -diff
 go mod verify
@@ -41,6 +47,10 @@ go mod verify
 
 ## Tests
 
-P1-001 contains only a bootstrap smoke test that the entrypoint package
-compiles and its `main` returns. Domain, SQLite, HTTP and compatibility tests
-are deliberately deferred to P1-003, P1-004 and later tasks.
+The P1-001 entrypoint smoke test remains in `cmd/lynk`. P1-003 adds focused
+SQLite tests in `internal/database`: fresh open and reopen without data loss,
+path and permission handling, pragma verification on pooled connections,
+migration ordering/idempotence/drift detection, transaction rollback and
+foreign keys, FTS5 smoke and tag-trigger synchronization, and a WAL-aware
+online-backup proof of concept. HTTP, API and Linkding compatibility tests are
+deferred to later tasks.

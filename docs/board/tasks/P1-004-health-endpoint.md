@@ -2,9 +2,9 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BACKLOG` |
+| Status | `IN_PROGRESS` |
 | Priorytet | `P1` |
-| Owner | — |
+| Owner | Big Pickle |
 | Faza | Phase 1 |
 | Zależności | P1-002, P1-003 |
 
@@ -33,6 +33,7 @@ Testy handlera oraz `curl`/klient HTTP przeciwko uruchomionej aplikacji.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Oczekuje na warstwę konfiguracji i DB |
+| 2026-11-25 | `IN_PROGRESS` | Big Pickle | Rozpoczęto implementację endpointu health |
 
 ## Blockery
 

@@ -1,16 +1,14 @@
 // Command lynk is the application entrypoint.
-//
-// Phase 1 foundation: typed configuration, structured logging, SQLite
-// migrations, the unauthenticated /health endpoint and graceful signal
-// handling are wired here. API, UI and container packaging are later tasks.
 package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/lisieckir/lynk/internal/auth"
 	"github.com/lisieckir/lynk/internal/config"
 	"github.com/lisieckir/lynk/internal/database"
 	"github.com/lisieckir/lynk/internal/logging"
@@ -21,7 +19,7 @@ import (
 func main() {
 	ctx, stop := shutdown.Context(context.Background())
 	defer stop()
-	if err := run(ctx, os.LookupEnv, os.Stdout); err != nil {
+	if err := run(ctx, os.Args[1:], os.LookupEnv, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, fmt.Errorf("lynk: %w", err))
 		os.Exit(1)
 	}
@@ -29,7 +27,14 @@ func main() {
 
 // run is separated from main so configuration, startup and shutdown behavior
 // can be tested without installing process signal handlers.
-func run(ctx context.Context, lookup config.LookupFunc, out io.Writer) error {
+func run(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) error {
+	if len(args) > 0 && args[0] == "token" {
+		return runTokenCmd(ctx, args[1:], lookup, out)
+	}
+	return runServer(ctx, lookup, out)
+}
+
+func runServer(ctx context.Context, lookup config.LookupFunc, out io.Writer) error {
 	cfg, err := config.LoadFrom(lookup)
 	if err != nil {
 		return fmt.Errorf("load configuration: %w", err)
@@ -62,4 +67,36 @@ func run(ctx context.Context, lookup config.LookupFunc, out io.Writer) error {
 	serverCfg := server.DefaultConfig(cfg.HTTPAddr)
 	serverCfg.ReadinessTimeout = cfg.HealthTimeout
 	return server.Run(ctx, serverCfg, db, logger)
+}
+
+func runTokenCmd(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) error {
+	if len(args) == 0 || args[0] != "create" {
+		return fmt.Errorf("usage: lynk token create [--username NAME] [--name TOKENNAME]")
+	}
+	fs := flag.NewFlagSet("token create", flag.ContinueOnError)
+	fs.SetOutput(out)
+	username := fs.String("username", "admin", "Username for the first user (used only when no users exist)")
+	tokenName := fs.String("name", "default", "Token name")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+
+	cfg, err := config.LoadFrom(lookup)
+	if err != nil {
+		return fmt.Errorf("load configuration: %w", err)
+	}
+	db, err := database.Open(ctx, database.Config{Path: cfg.DatabasePath})
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer db.Close()
+
+	info, err := auth.CreateFirstUserAndToken(ctx, db, *username, *tokenName)
+	if err != nil {
+		return fmt.Errorf("create token: %w", err)
+	}
+	// Print raw token once (never log it)
+	fmt.Fprintf(out, "Token created for user_id=%d (username from DB). Save this token now, it will not be shown again.\n", info.UserID)
+	fmt.Fprintf(out, "TOKEN=%s\n", info.Token)
+	return nil
 }

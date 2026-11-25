@@ -52,7 +52,7 @@ func TestRunValidConfig(t *testing.T) {
 	cancel()
 
 	var out bytes.Buffer
-	if err := run(ctx, lookupFrom(tempValues(t, freeHTTPAddr(t))), &out); err != nil {
+	if err := run(ctx, nil, lookupFrom(tempValues(t, freeHTTPAddr(t))), &out); err != nil {
 		t.Fatalf("run with default configuration: %v", err)
 	}
 	got := out.String()
@@ -72,7 +72,7 @@ func TestRunStartupLogOmitsFilesystemPaths(t *testing.T) {
 	cancel()
 
 	var out bytes.Buffer
-	if err := run(ctx, lookupFrom(values), &out); err != nil {
+	if err := run(ctx, nil, lookupFrom(values), &out); err != nil {
 		t.Fatalf("run with custom paths: %v", err)
 	}
 	got := out.String()
@@ -103,7 +103,7 @@ func TestRunInvalidConfigFailsBeforeLogging(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	err := run(context.Background(), lookup, &out)
+	err := run(context.Background(), nil, lookup, &out)
 	if err == nil {
 		t.Fatal("run succeeded with invalid LYNK_HTTP_ADDR")
 	}
@@ -124,7 +124,7 @@ func TestRunInvalidHealthTimeoutFailsBeforeLogging(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	err := run(context.Background(), lookup, &out)
+	err := run(context.Background(), nil, lookup, &out)
 	if err == nil {
 		t.Fatal("run succeeded with invalid LYNK_HEALTH_TIMEOUT")
 	}
@@ -146,7 +146,7 @@ func TestRunServesHealthUntilCancelled(t *testing.T) {
 	var out bytes.Buffer
 	done := make(chan error, 1)
 	go func() {
-		done <- run(ctx, lookupFrom(values), &out)
+		done <- run(ctx, nil, lookupFrom(values), &out)
 	}()
 
 	client := &http.Client{Timeout: 2 * time.Second}

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 var (
@@ -293,34 +294,145 @@ func (s *Service) ListTags(ctx context.Context, userID int64) ([]Tag, error) {
 	return tags, nil
 }
 
-func (s *Service) List(ctx context.Context, userID int64, archived bool) ([]Bookmark, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,date_added,date_modified FROM bookmarks WHERE user_id=? AND is_archived=? ORDER BY date_added DESC,id DESC`, userID, archived)
-	if err != nil {
-		return nil, err
+// DefaultLimit matches Linkding's REST_FRAMEWORK PAGE_SIZE setting. It is
+// applied when a list or search request omits or sends an invalid limit.
+const DefaultLimit = 100
+
+// PageOptions bounds one list or search page.
+type PageOptions struct {
+	// Limit is the requested page size; values <= 0 select DefaultLimit.
+	Limit int
+	// Offset is the requested start index; negative values become zero.
+	Offset int
+	// Query is an FTS5 search term; when empty the page is the full list.
+	Query string
+}
+
+// Page is one window of results plus the total number of matching rows.
+type Page struct {
+	Count  int
+	Items  []Bookmark
+	Limit  int
+	Offset int
+}
+
+// List returns one page of bookmarks owned by userID, newest first. When
+// opts.Query is non-empty the page holds FTS5 matches over the bookmark url,
+// title, description, notes and tags instead of the whole list; the row count
+// and the date_added-descending order are the same for both modes.
+func (s *Service) List(ctx context.Context, userID int64, archived bool, opts PageOptions) (Page, error) {
+	limit := opts.Limit
+	if limit <= 0 {
+		limit = DefaultLimit
 	}
-	var out []Bookmark
+	offset := opts.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	match := ftsQuery(opts.Query)
+	if opts.Query != "" && match == "" {
+		// A query without word characters has no FTS terms; like Linkding's
+		// icontains search, it matches nothing.
+		return Page{Count: 0, Items: []Bookmark{}, Limit: limit, Offset: offset}, nil
+	}
+
+	conditions := []string{"user_id = ?", "is_archived = ?"}
+	args := []any{userID, archived}
+	if match != "" {
+		conditions = append(conditions, `EXISTS(SELECT 1 FROM bookmark_search
+			WHERE rowid = bookmarks.id AND bookmark_search MATCH ?)`)
+		args = append(args, match)
+	}
+	where := strings.Join(conditions, " AND ")
+
+	count, err := s.countMatches(ctx, where, args)
+	if err != nil {
+		return Page{}, err
+	}
+	listArgs := make([]any, 0, len(args)+2)
+	listArgs = append(listArgs, args...)
+	listArgs = append(listArgs, limit, offset)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,date_added,date_modified
+		 FROM bookmarks WHERE `+where+`
+		 ORDER BY date_added DESC, id DESC LIMIT ? OFFSET ?`, listArgs...)
+	if err != nil {
+		return Page{}, err
+	}
+	items, err := s.scanListRows(ctx, rows)
+	if err != nil {
+		return Page{}, err
+	}
+	return Page{Count: count, Items: items, Limit: limit, Offset: offset}, nil
+}
+
+func (s *Service) countMatches(ctx context.Context, where string, args []any) (int, error) {
+	var count int
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM bookmarks WHERE `+where, args...).Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (s *Service) scanListRows(ctx context.Context, rows *sql.Rows) ([]Bookmark, error) {
+	defer func() { _ = rows.Close() }()
+	var items []Bookmark
 	for rows.Next() {
-		b, err := scanBookmark(rows)
+		item, err := scanBookmark(rows)
 		if err != nil {
-			_ = rows.Close()
 			return nil, err
 		}
-		out = append(out, b)
+		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
-		_ = rows.Close()
 		return nil, err
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	for i := range out {
-		out[i].Tags, err = loadTags(ctx, s.db, out[i].ID)
+	for i := range items {
+		tags, err := loadTags(ctx, s.db, items[i].ID)
 		if err != nil {
 			return nil, err
 		}
+		items[i].Tags = tags
 	}
-	return out, nil
+	if items == nil {
+		items = []Bookmark{}
+	}
+	return items, nil
+}
+
+// ftsQuery builds an FTS5 MATCH expression from arbitrary user input. Each
+// run of letters and digits is quoted as a phrase, so quotes, operators,
+// columns and other FTS5 metacharacters inside the query stay inert: the user
+// text is never concatenated into the expression unquoted. Tokens are ANDed as
+// phrases. The final token carries an FTS5 prefix marker so partial words —
+// the extension's omnibox searches while the user is still typing — narrow
+// the result set instead of matching nothing.
+func ftsQuery(q string) string {
+	var tokens []string
+	var token strings.Builder
+	flush := func() {
+		if token.Len() > 0 {
+			tokens = append(tokens, token.String())
+			token.Reset()
+		}
+	}
+	for _, r := range q {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			token.WriteRune(r)
+			continue
+		}
+		flush()
+	}
+	flush()
+	if len(tokens) == 0 {
+		return ""
+	}
+	quoted := make([]string, len(tokens))
+	for i, t := range tokens {
+		quoted[i] = `"` + t + `"`
+	}
+	quoted[len(quoted)-1] += "*"
+	return strings.Join(quoted, " ")
 }
 
 func (s *Service) Delete(ctx context.Context, userID, id int64) error {

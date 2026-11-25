@@ -1,9 +1,13 @@
 # Linkding API compatibility research
 
-Status: Phase 0 research plus P2-003 API foundation implemented. The
-endpoints covered by the foundation are listed below; search/pagination
-filters, update/archive, metadata fetching and asset/bundle routes remain
-unimplemented and are tracked as separate board work.
+Status: Phase 0 research plus P2-003 API foundation implemented; P2-004
+search (`q`, FTS5), limit/offset pagination and the update/archive mutations
+below are implemented and verified by `make test-compat`. Remaining
+unimplemented areas: metadata fetching, asset/bundle routes and newer
+Linkding search filters such as `sort`, `unread`, `shared`,
+`modified_since`/`added_since`. The endpoints covered by the foundation are
+listed below; metadata fetching, asset/bundle routes and newer filters
+remain unimplemented and are tracked as separate board work.
 
 ## Scope and sources
 
@@ -169,6 +173,18 @@ Lynk must preserve the keys and nullability. The extension only consumes
 implementation may differ internally, but must cover URL, title,
 description/notes and tags and accept extension queries without requiring
 extension changes.
+
+Verified implementation differences, both covered by compatibility tests:
+
+* Lynk tokenizes with FTS5 and ANDs the quoted tokens of `q`, so matching is
+  whole-token rather than Linkding's `icontains` substring match. The final
+  token is evaluated as a prefix query, which keeps the extension's omnibox
+  useful while the user is still typing a partial word; an infix fragment
+  (e.g. `lph` for `alpha`) does not match.
+* Lynk treats a missing, unparsable or non-positive `limit` as the default
+  page size of 100 and a missing or unparsable `offset` as `0`. DRF accepts
+  `limit=0` as an empty page; Lynk rejects that degenerate value so `next`
+  cannot point at the same empty page.
 
 ## Errors and status behavior
 

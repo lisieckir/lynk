@@ -172,8 +172,8 @@ func TestPatchTagReplacementFTSRollbackArchiveDelete(t *testing.T) {
 	if !archived.IsArchived || !archived.DateModified.Equal(s.now()) {
 		t.Fatalf("archive state/timestamp: %+v", archived)
 	}
-	if rows, err := s.List(ctx, 1, true); err != nil || len(rows) != 1 {
-		t.Fatalf("archived list=%v, err=%v", rows, err)
+	if page, err := s.List(ctx, 1, true, PageOptions{}); err != nil || len(page.Items) != 1 {
+		t.Fatalf("archived list=%v, err=%v", page, err)
 	}
 	if err := s.Unarchive(ctx, 1, b.ID); err != nil {
 		t.Fatal(err)
@@ -205,11 +205,11 @@ func TestListWithSingleConnectionAndTaggedBookmark(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	bookmarks, err := s.List(ctx, 1, false)
+	page, err := s.List(ctx, 1, false, PageOptions{})
 	if err != nil {
 		t.Fatalf("List with MaxOpenConns=1: %v", err)
 	}
-	if len(bookmarks) != 1 || len(bookmarks[0].Tags) != 1 || bookmarks[0].Tags[0] != "tag" {
-		t.Fatalf("List returned %+v", bookmarks)
+	if len(page.Items) != 1 || len(page.Items[0].Tags) != 1 || page.Items[0].Tags[0] != "tag" {
+		t.Fatalf("List returned %+v", page.Items)
 	}
 }

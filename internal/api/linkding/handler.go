@@ -70,12 +70,18 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case bookmarksPath:
 		switch r.Method {
 		case http.MethodGet:
-			a.listBookmarks(w, r, userID)
+			a.listBookmarks(w, r, userID, false)
 		case http.MethodPost:
 			a.createBookmark(w, r, userID)
 		default:
 			writeMethodNotAllowed(w, http.MethodGet, http.MethodPost)
 		}
+		return
+	case bookmarksPath + "archived/":
+		if a.rejectMethod(w, r, http.MethodGet) {
+			return
+		}
+		a.listBookmarks(w, r, userID, true)
 		return
 	case bookmarksPath + "check/":
 		if a.rejectMethod(w, r, http.MethodGet) {
@@ -89,19 +95,51 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// trailing slash, a non-numeric id or an extra segment is a plain 404:
 	// no implicit redirect is issued for API clients.
 	if strings.HasPrefix(path, bookmarksPath) && strings.HasSuffix(path, "/") {
-		rawID := strings.TrimSuffix(strings.TrimPrefix(path, bookmarksPath), "/")
-		if rawID != "" && isDecimal(rawID) {
-			if id, err := strconv.ParseInt(rawID, 10, 64); err == nil && id > 0 {
+		rest := strings.TrimSuffix(strings.TrimPrefix(path, bookmarksPath), "/")
+		idStr := rest
+		action := ""
+		if i := strings.IndexByte(rest, '/'); i >= 0 {
+			idStr = rest[:i]
+			action = rest[i+1:]
+			if action == "" || strings.Contains(action, "/") {
+				writeNotFound(w)
+				return
+			}
+		}
+		if idStr != "" && isDecimal(idStr) {
+			id, err := strconv.ParseInt(idStr, 10, 64)
+			if err != nil || id <= 0 {
+				writeNotFound(w)
+				return
+			}
+			switch action {
+			case "":
 				switch r.Method {
 				case http.MethodGet:
 					a.getBookmark(w, r, userID, id)
+				case http.MethodPut:
+					a.updateBookmark(w, r, userID, id, true)
+				case http.MethodPatch:
+					a.updateBookmark(w, r, userID, id, false)
 				case http.MethodDelete:
 					a.deleteBookmark(w, r, userID, id)
 				default:
-					writeMethodNotAllowed(w, http.MethodGet, http.MethodDelete)
+					writeMethodNotAllowed(w, http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodDelete)
 				}
-				return
+			case "archive":
+				if a.rejectMethod(w, r, http.MethodPost) {
+					return
+				}
+				a.archiveBookmark(w, r, userID, id)
+			case "unarchive":
+				if a.rejectMethod(w, r, http.MethodPost) {
+					return
+				}
+				a.unarchiveBookmark(w, r, userID, id)
+			default:
+				writeNotFound(w)
 			}
+			return
 		}
 	}
 	writeNotFound(w)

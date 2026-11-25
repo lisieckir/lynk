@@ -72,9 +72,9 @@ type checkDTO struct {
 	AutoTags []string     `json:"auto_tags"`
 }
 
-// Both list endpoints keep Linkding's LimitOffsetPagination envelope even
-// though this slice does not interpret limit/offset or search parameters.
-// next/previous are always null until offset paging is implemented.
+// bookmarkPageDTO keeps Linkding's LimitOffsetPagination envelope: count is
+// the total number of matching rows and next/previous are request-derived
+// URLs that are null at the ends of the result set.
 type bookmarkPageDTO struct {
 	Count    int           `json:"count"`
 	Next     *string       `json:"next"`

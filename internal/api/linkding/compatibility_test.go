@@ -225,7 +225,8 @@ func TestCanonicalRoutesAndHealthWiring(t *testing.T) {
 		{http.MethodPost, "/api/tags/", "GET"},
 		{http.MethodDelete, "/api/bookmarks/", "GET, POST"},
 		{http.MethodPost, "/api/user/profile/", "GET"},
-		{http.MethodPut, "/api/bookmarks/1/", "GET, DELETE"},
+		{http.MethodPost, "/api/bookmarks/1/", "GET, PUT, PATCH, DELETE"},
+		{http.MethodGet, "/api/bookmarks/1/archive/", "POST"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
@@ -559,4 +560,342 @@ func TestValidationErrorContract(t *testing.T) {
 
 func urlQueryEscape(value string) string {
 	return url.QueryEscape(value)
+}
+
+func resultIDs(t *testing.T, page map[string]any) []int64 {
+	t.Helper()
+	results, ok := page["results"].([]any)
+	if !ok {
+		t.Fatalf("results = %T, want array", page["results"])
+	}
+	ids := make([]int64, 0, len(results))
+	for _, raw := range results {
+		item, ok := raw.(map[string]any)
+		if !ok {
+			t.Fatalf("result = %T, want object", raw)
+		}
+		id, ok := item["id"].(float64)
+		if !ok {
+			t.Fatalf("result id = %T, want number", item["id"])
+		}
+		ids = append(ids, int64(id))
+	}
+	return ids
+}
+
+func queryParams(t *testing.T, raw string) url.Values {
+	t.Helper()
+	u, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse link %q: %v", raw, err)
+	}
+	return u.Query()
+}
+
+func TestSearchOverFTSFields(t *testing.T) {
+	f := newFixture(t)
+	b1 := createBookmark(t, f.handler, token(f.aliceToken), map[string]any{
+		"url": "https://alpha.example/one", "title": "Alpha title",
+		"description": "shared description", "notes": "some notes",
+		"tag_names": []string{"zeta"},
+	})
+	b2 := createBookmark(t, f.handler, token(f.aliceToken), map[string]any{
+		"url": "https://beta.example/two", "title": "Beta title",
+	})
+	wantAlpha := []int64{int64(b1["id"].(float64))}
+	wantBeta := []int64{int64(b2["id"].(float64))}
+	cases := []struct {
+		name, query string
+		want        []int64
+	}{
+		{"title", "Alpha", wantAlpha},
+		{"second title", "Beta", wantBeta},
+		{"description", "shared description", wantAlpha},
+		{"notes", "some notes", wantAlpha},
+		{"url", "alpha.example", wantAlpha},
+		{"tags", "zeta", wantAlpha},
+		{"partial word", "alph", wantAlpha},
+		{"no match", "zzz-nomatch-term", []int64{}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := request(t, f.handler, http.MethodGet, "/api/bookmarks/?q="+urlQueryEscape(tc.query), token(f.aliceToken), nil)
+			assertStatus(t, rec, http.StatusOK)
+			page := decodeObject(t, rec)
+			assertExactKeys(t, page, "count", "next", "previous", "results")
+			if got := resultIDs(t, page); !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("search q=%q ids = %v, want %v", tc.query, got, tc.want)
+			}
+			if page["next"] != nil || page["previous"] != nil {
+				t.Errorf("search q=%q next/previous = %v/%v, want null", tc.query, page["next"], page["previous"])
+			}
+		})
+	}
+}
+
+func TestSearchInjectionSafety(t *testing.T) {
+	f := newFixture(t)
+	created := createBookmark(t, f.handler, token(f.aliceToken), map[string]any{
+		"url": "https://example.com", "title": "Example",
+	})
+	queries := []string{
+		`"`, `'`, `a" AND b`, `"Alpha" OR`, `--`, `-- -x`,
+		`DROP TABLE bookmarks`, `"UNION SELECT id FROM bookmarks --`,
+		`AND OR NOT NEAR(`, `title:x`, `""`, `MATCH`,
+	}
+	for _, q := range queries {
+		t.Run(q, func(t *testing.T) {
+			rec := request(t, f.handler, http.MethodGet, "/api/bookmarks/?q="+urlQueryEscape(q), token(f.aliceToken), nil)
+			assertStatus(t, rec, http.StatusOK)
+			page := decodeObject(t, rec)
+			assertExactKeys(t, page, "count", "next", "previous", "results")
+			results, ok := page["results"].([]any)
+			if !ok {
+				t.Fatalf("results = %T, want array", page["results"])
+			}
+			if float64(len(results)) != page["count"].(float64) {
+				t.Errorf("q=%q count=%v != len(results)=%d", q, page["count"], len(results))
+			}
+			for _, raw := range results {
+				if raw.(map[string]any)["id"] != created["id"] {
+					t.Errorf("q=%q returned a bookmark the query should not match", q)
+				}
+			}
+		})
+	}
+}
+
+func TestListPagination(t *testing.T) {
+	f := newFixture(t)
+	for i := 0; i < 5; i++ {
+		createBookmark(t, f.handler, token(f.aliceToken), map[string]any{
+			"url": fmt.Sprintf("https://paginate.example/%d", i), "title": fmt.Sprintf("Paginate %d", i),
+		})
+	}
+
+	// Default page: the whole list fits and next/previous are null.
+	rec := request(t, f.handler, http.MethodGet, "/api/bookmarks/", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	page := decodeObject(t, rec)
+	assertExactKeys(t, page, "count", "next", "previous", "results")
+	if page["count"] != float64(5) || page["next"] != nil || page["previous"] != nil {
+		t.Errorf("default page = %v", page)
+	}
+	if got := resultIDs(t, page); len(got) != 5 {
+		t.Errorf("default page ids = %v, want 5", got)
+	}
+
+	// Page 1 of limit=2: count is the total, previous is null, next carries
+	// the limit and the next offset.
+	rec = request(t, f.handler, http.MethodGet, "/api/bookmarks/?limit=2", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	page = decodeObject(t, rec)
+	if page["count"] != float64(5) || len(resultIDs(t, page)) != 2 {
+		t.Fatalf("page1 = %v", page)
+	}
+	if page["previous"] != nil {
+		t.Errorf("page1 previous = %v, want null", page["previous"])
+	}
+	next := page["next"]
+	if next == nil {
+		t.Fatal("page1 next = nil, want URL")
+	}
+	if q := queryParams(t, next.(string)); q.Get("limit") != "2" || q.Get("offset") != "2" {
+		t.Errorf("page1 next params = %v, want limit=2 offset=2", q)
+	}
+
+	// Page 2: follow next; previous has no offset when it is the first page.
+	rec = request(t, f.handler, http.MethodGet, next.(string), token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	page = decodeObject(t, rec)
+	if page["count"] != float64(5) || len(resultIDs(t, page)) != 2 {
+		t.Fatalf("page2 = %v", page)
+	}
+	if prev := page["previous"]; prev == nil || queryParams(t, prev.(string)).Get("offset") != "" {
+		t.Errorf("page2 previous = %v, want URL without offset", page["previous"])
+	}
+	if next := page["next"]; next == nil || queryParams(t, next.(string)).Get("offset") != "4" {
+		t.Errorf("page2 next = %v, want URL with offset=4", page["next"])
+	}
+
+	// Last page: next is null, previous carries offset=2.
+	rec = request(t, f.handler, http.MethodGet, "/api/bookmarks/?limit=2&offset=4", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	page = decodeObject(t, rec)
+	if page["count"] != float64(5) || page["next"] != nil || len(resultIDs(t, page)) != 1 {
+		t.Errorf("last page = %v", page)
+	}
+	if prev := page["previous"]; prev == nil || queryParams(t, prev.(string)).Get("offset") != "2" {
+		t.Errorf("last page previous = %v, want URL with offset=2", page["previous"])
+	}
+
+	// Invalid limit/offset fall back to the Linkding defaults (limit=abc and
+	// limit=0 use the default page size, offset=abc and offset<0 read as 0).
+	for _, path := range []string{
+		"/api/bookmarks/?limit=abc", "/api/bookmarks/?limit=0",
+		"/api/bookmarks/?offset=abc", "/api/bookmarks/?offset=-4",
+	} {
+		rec = request(t, f.handler, http.MethodGet, path, token(f.aliceToken), nil)
+		assertStatus(t, rec, http.StatusOK)
+		page = decodeObject(t, rec)
+		if page["count"] != float64(5) || page["next"] != nil || page["previous"] != nil {
+			t.Errorf("%s page = %v, want full page", path, page)
+		}
+	}
+}
+
+func TestUpdatePutPatchAndCollisions(t *testing.T) {
+	f := newFixture(t)
+	b := createBookmark(t, f.handler, token(f.aliceToken), map[string]any{
+		"url": "https://update.example/a", "title": "Original", "description": "Original desc",
+	})
+	duplicate := createBookmark(t, f.handler, token(f.aliceToken), map[string]any{
+		"url": "https://dup.example/x", "title": "Dup",
+	})
+	bobBookmark := createBookmark(t, f.handler, token(f.bobToken), map[string]any{
+		"url": "https://collision.example/b", "title": "Bob",
+	})
+	id := fmt.Sprintf("/api/bookmarks/%d/", int64(b["id"].(float64)))
+
+	// PUT without url: DRF marks url required for updates.
+	rec := request(t, f.handler, http.MethodPut, id, token(f.aliceToken), map[string]any{"title": "x"})
+	assertStatus(t, rec, http.StatusBadRequest)
+	if _, ok := decodeObject(t, rec)["url"]; !ok {
+		t.Errorf("PUT without url error = %v, want url field", decodeObject(t, rec))
+	}
+
+	// PUT with an invalid URL: 400, url field.
+	rec = request(t, f.handler, http.MethodPut, id, token(f.aliceToken), map[string]any{"url": "javascript:alert(1)"})
+	assertStatus(t, rec, http.StatusBadRequest)
+	if _, ok := decodeObject(t, rec)["url"]; !ok {
+		t.Errorf("PUT invalid url error = %v, want url field", decodeObject(t, rec))
+	}
+
+	// PUT success: 200 with the full bookmark object, updated values persisted.
+	rec = request(t, f.handler, http.MethodPut, id, token(f.aliceToken), map[string]any{
+		"url": "https://update.example/b", "title": "Updated", "description": "New desc", "unread": true,
+	})
+	assertStatus(t, rec, http.StatusOK)
+	updated := decodeObject(t, rec)
+	assertExactKeys(t, updated,
+		"id", "url", "title", "description", "notes", "web_archive_snapshot_url",
+		"favicon_url", "preview_image_url", "is_archived", "unread", "shared",
+		"tag_names", "date_added", "date_modified", "website_title", "website_description")
+	if updated["id"] != b["id"] || updated["url"] != "https://update.example/b" ||
+		updated["title"] != "Updated" || updated["description"] != "New desc" || updated["unread"] != true {
+		t.Errorf("PUT response = %v", updated)
+	}
+	rec = request(t, f.handler, http.MethodGet, id, token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	if got := decodeObject(t, rec); !reflect.DeepEqual(got, updated) {
+		t.Errorf("GET after PUT = %v, want %v", got, updated)
+	}
+
+	// PUT onto a URL another bookmark of the same user owns: 400 url collision.
+	rec = request(t, f.handler, http.MethodPut, id, token(f.aliceToken), map[string]any{"url": "HTTPS://DUP.example/x"})
+	assertStatus(t, rec, http.StatusBadRequest)
+	if _, ok := decodeObject(t, rec)["url"]; !ok {
+		t.Errorf("collision error = %v, want url field", decodeObject(t, rec))
+	}
+	// The collision leaves the other user's duplicate row untouched.
+	rec = request(t, f.handler, http.MethodGet,
+		fmt.Sprintf("/api/bookmarks/%d/", int64(duplicate["id"].(float64))), token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	if got := decodeObject(t, rec)["url"]; got != "https://dup.example/x" {
+		t.Errorf("duplicate url = %v, want https://dup.example/x", got)
+	}
+
+	// PUT to another user's bookmark: 404.
+	rec = request(t, f.handler, http.MethodPut, fmt.Sprintf("/api/bookmarks/%d/", int64(bobBookmark["id"].(float64))), token(f.aliceToken), map[string]any{"url": "https://elsewhere.example"})
+	assertStatus(t, rec, http.StatusNotFound)
+
+	// PATCH is partial: only the provided fields change.
+	rec = request(t, f.handler, http.MethodPatch, id, token(f.aliceToken), map[string]any{"title": "Patched"})
+	assertStatus(t, rec, http.StatusOK)
+	patched := decodeObject(t, rec)
+	assertExactKeys(t, patched,
+		"id", "url", "title", "description", "notes", "web_archive_snapshot_url",
+		"favicon_url", "preview_image_url", "is_archived", "unread", "shared",
+		"tag_names", "date_added", "date_modified", "website_title", "website_description")
+	if patched["title"] != "Patched" || patched["description"] != "New desc" || patched["url"] != "https://update.example/b" {
+		t.Errorf("PATCH response = %v, want patched title with other fields intact", patched)
+	}
+
+	// PATCH on a missing bookmark: 404.
+	rec = request(t, f.handler, http.MethodPatch, "/api/bookmarks/999999/", token(f.aliceToken), map[string]any{"title": "x"})
+	assertStatus(t, rec, http.StatusNotFound)
+}
+
+func TestArchiveUnarchiveAndArchivedList(t *testing.T) {
+	f := newFixture(t)
+	b := createBookmark(t, f.handler, token(f.aliceToken), map[string]any{
+		"url": "https://archive.example/a", "title": "Arch me",
+	})
+	bobBookmark := createBookmark(t, f.handler, token(f.bobToken), map[string]any{
+		"url": "https://archive.example/bob", "title": "Bob arch",
+	})
+	id := fmt.Sprintf("/api/bookmarks/%d/", int64(b["id"].(float64)))
+
+	// Archive: empty 204 body.
+	rec := request(t, f.handler, http.MethodPost, id+"archive/", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusNoContent)
+	if rec.Body.Len() != 0 {
+		t.Errorf("archive body = %q, want empty", rec.Body.String())
+	}
+
+	// Detail shows the archived flag.
+	rec = request(t, f.handler, http.MethodGet, id, token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	if got := decodeObject(t, rec)["is_archived"]; got != true {
+		t.Errorf("GET is_archived = %v, want true", got)
+	}
+
+	// Active list excludes it; the archived list includes it with the envelope.
+	rec = request(t, f.handler, http.MethodGet, "/api/bookmarks/", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	if page := decodeObject(t, rec); page["count"] != float64(0) {
+		t.Errorf("active page count = %v, want 0", page["count"])
+	}
+	rec = request(t, f.handler, http.MethodGet, "/api/bookmarks/archived/", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	page := decodeObject(t, rec)
+	assertExactKeys(t, page, "count", "next", "previous", "results")
+	if page["count"] != float64(1) || page["next"] != nil || page["previous"] != nil {
+		t.Errorf("archived page = %v", page)
+	}
+	if ids := resultIDs(t, page); !reflect.DeepEqual(ids, []int64{int64(b["id"].(float64))}) {
+		t.Errorf("archived ids = %v, want the archived bookmark", ids)
+	}
+
+	// The archived list honours q.
+	rec = request(t, f.handler, http.MethodGet, "/api/bookmarks/archived/?q=Arch", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	if page := decodeObject(t, rec); page["count"] != float64(1) {
+		t.Errorf("archived search count = %v, want 1", page["count"])
+	}
+
+	// Archive on another user's bookmark: 404.
+	rec = request(t, f.handler, http.MethodPost, fmt.Sprintf("/api/bookmarks/%d/archive/", int64(bobBookmark["id"].(float64))), token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusNotFound)
+
+	// Unarchive: empty 204; the archived list empties again.
+	rec = request(t, f.handler, http.MethodPost, id+"unarchive/", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusNoContent)
+	if rec.Body.Len() != 0 {
+		t.Errorf("unarchive body = %q, want empty", rec.Body.String())
+	}
+	rec = request(t, f.handler, http.MethodGet, "/api/bookmarks/archived/", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	if page := decodeObject(t, rec); page["count"] != float64(0) {
+		t.Errorf("archived page after unarchive count = %v, want 0", page["count"])
+	}
+
+	// The other user can archive their own bookmark.
+	rec = request(t, f.handler, http.MethodPost, fmt.Sprintf("/api/bookmarks/%d/archive/", int64(bobBookmark["id"].(float64))), token(f.bobToken), nil)
+	assertStatus(t, rec, http.StatusNoContent)
+	rec = request(t, f.handler, http.MethodGet, "/api/bookmarks/archived/", token(f.bobToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	if page := decodeObject(t, rec); page["count"] != float64(1) {
+		t.Errorf("bob archived count = %v, want 1", page["count"])
+	}
 }

@@ -60,6 +60,7 @@ Dozwolone statusy:
 | `PO_REVIEW` | wymagana akceptacja Product Ownera |
 | `DONE` | kryteria akceptacji spełnione |
 | `CANCELLED` | zadanie anulowane decyzją PO |
+| `PAUSED` | praca świadomie wstrzymana, bez utraty kontekstu |
 
 Przejście `IN_PROGRESS -> DONE` wymaga spełnienia wszystkich kryteriów
 akceptacji. Przejście do `PO_REVIEW` jest obowiązkowe, gdy zadanie:

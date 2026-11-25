@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `REVIEW` |
+| Status | `PAUSED` |
 | Priorytet | `P1` |
 | Owner | GPT-6 Luna |
 | Faza | Phase 2 |
@@ -48,6 +48,7 @@ bez implementowania jeszcze Linkding API ani UI.
 |---|---|---|---|
 | 2026-11-25 | `IN_PROGRESS` | GPT-6 Luna | Rozpoczęto implementację domeny |
 | 2026-11-25 | `REVIEW` | OpenCode | Implementacja gotowa do niezależnego review |
+| 2026-11-25 | `PAUSED` | OpenCode | Wstrzymano przed poprawką portu `:0` i malformed percent escapes |
 
 ## Blockery
 

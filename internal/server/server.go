@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/lisieckir/lynk/internal/api/linkding"
 	"github.com/lisieckir/lynk/internal/health"
 	"github.com/lisieckir/lynk/internal/shutdown"
 )
@@ -56,16 +57,30 @@ func Handler(db *sql.DB) http.Handler {
 	return HandlerWithReadinessTimeout(db, health.DefaultTimeout)
 }
 
-// HandlerWithReadinessTimeout returns the Phase 1 root handler. Only the exact
-// canonical path GET /health is registered; /health/ is deliberately not
-// registered and therefore returns a deterministic 404 from ServeMux.
+// HandlerWithReadinessTimeout returns the root handler with health and the
+// Linkding API wired. Only the exact canonical path GET /health is registered;
+// /health/ is deliberately not registered and therefore returns a deterministic
+// 404 from ServeMux. API routes keep their trailing slashes and are protected
+// by the token middleware inside linkding.NewHandler.
 func HandlerWithReadinessTimeout(db *sql.DB, timeout time.Duration) http.Handler {
-	return handlerWithChecker(db, timeout)
+	return HandlerWithAPI(db, linkding.NewHandler(db, slog.Default()), timeout)
+}
+
+// HandlerWithAPI composes a custom API handler with the unauthenticated health
+// route. Registering /api as well as /api/ prevents ServeMux from redirecting
+// clients that omit the trailing slash: the API router answers 404 instead.
+func HandlerWithAPI(db *sql.DB, api http.Handler, timeout time.Duration) http.Handler {
+	mux := handlerWithChecker(db, timeout)
+	if api != nil {
+		mux.Handle("/api/", api)
+		mux.Handle("/api", api)
+	}
+	return mux
 }
 
 // handlerWithChecker is the test seam that proves a configured timeout reaches
 // the readiness handler without widening the production API.
-func handlerWithChecker(checker health.Checker, timeout time.Duration) http.Handler {
+func handlerWithChecker(checker health.Checker, timeout time.Duration) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("GET "+health.Path, health.NewHandlerWithTimeout(checker, timeout))
 	return mux

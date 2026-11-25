@@ -101,13 +101,9 @@ test-integration: ## Run integration tests in tests/integration (when present)
 		echo "==> test-integration: tests/integration is not present yet; nothing to run" >&2; \
 	fi
 
-test-compat: ## Run Linkding API compatibility tests in internal/api/linkding (when present)
-	@if [ -d internal/api/linkding ]; then \
-		echo "==> test-compat: running $(GO) test ./internal/api/linkding/..."; \
-		$(GO) test ./internal/api/linkding/...; \
-	else \
-		echo "==> test-compat: internal/api/linkding is not present yet (Phase 3); nothing to run" >&2; \
-	fi
+test-compat: ## Run Linkding API compatibility tests in internal/api/linkding
+	@echo "==> test-compat: running $(GO) test ./internal/api/linkding/..."
+	@$(GO) test ./internal/api/linkding/...
 
 benchmark: ## Run Go benchmarks (go test -bench=. -benchmem ./...)
 	@echo "==> benchmark: running $(GO) test -bench=. -benchmem ./..."

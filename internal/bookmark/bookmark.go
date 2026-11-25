@@ -239,6 +239,60 @@ func (s *Service) Get(ctx context.Context, userID, id int64) (Bookmark, error) {
 	return b, err
 }
 
+// GetByURL returns the bookmark owned by userID whose normalized URL matches
+// rawURL. Linkding's check endpoint uses the same normalized lookup as create,
+// so a caller cannot discover another user's row.
+func (s *Service) GetByURL(ctx context.Context, userID int64, rawURL string) (Bookmark, error) {
+	if userID <= 0 || strings.TrimSpace(rawURL) == "" {
+		return Bookmark{}, ErrInvalidBookmark
+	}
+	normalized, err := NormalizeURL(rawURL)
+	if err != nil {
+		return Bookmark{}, fmt.Errorf("%w: %v", ErrInvalidBookmark, err)
+	}
+	b, err := getByNormalized(ctx, s.db, userID, normalized)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Bookmark{}, ErrNotFound
+	}
+	return b, err
+}
+
+// ListTags returns all tags owned by userID in a stable name order. It is the
+// read side used by /api/tags/ and never includes tags from other users.
+func (s *Service) ListTags(ctx context.Context, userID int64) ([]Tag, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, user_id, name, date_added FROM tags WHERE user_id = ? ORDER BY name COLLATE BINARY, id`, userID)
+	if err != nil {
+		return nil, err
+	}
+	var tags []Tag
+	for rows.Next() {
+		var t Tag
+		var added string
+		if err := rows.Scan(&t.ID, &t.UserID, &t.Name, &added); err != nil {
+			_ = rows.Close()
+			return nil, err
+		}
+		t.DateAdded, err = time.Parse(time.RFC3339Nano, added)
+		if err != nil {
+			_ = rows.Close()
+			return nil, err
+		}
+		tags = append(tags, t)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if tags == nil {
+		tags = []Tag{}
+	}
+	return tags, nil
+}
+
 func (s *Service) List(ctx context.Context, userID int64, archived bool) ([]Bookmark, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,date_added,date_modified FROM bookmarks WHERE user_id=? AND is_archived=? ORDER BY date_added DESC,id DESC`, userID, archived)
 	if err != nil {
@@ -458,8 +512,8 @@ type queryer interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }
 
-func getByNormalized(ctx context.Context, tx *sql.Tx, userID int64, normalized string) (Bookmark, error) {
-	return scanWithTags(ctx, tx, tx.QueryRowContext(ctx, `SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,date_added,date_modified FROM bookmarks WHERE user_id=? AND url_normalized=?`, userID, normalized))
+func getByNormalized(ctx context.Context, q queryer, userID int64, normalized string) (Bookmark, error) {
+	return scanWithTags(ctx, q, q.QueryRowContext(ctx, `SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,date_added,date_modified FROM bookmarks WHERE user_id=? AND url_normalized=?`, userID, normalized))
 }
 func getByID(ctx context.Context, q queryer, userID, id int64) (Bookmark, error) {
 	return scanWithTags(ctx, q, q.QueryRowContext(ctx, `SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,date_added,date_modified FROM bookmarks WHERE user_id=? AND id=?`, userID, id))

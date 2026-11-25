@@ -54,7 +54,8 @@ API routes with token authentication. Preserve trailing slash routes as
 canonical.
 
 P1-004 registers `GET /health` on a standard `http.ServeMux` through
-`internal/server`. The handler in `internal/health` pings the database under a
+`internal/server`; P2-003 mounts the token-protected `/api/` subtree from
+`internal/api/linkding` alongside it. The handler in `internal/health` pings the database under a
 bounded context and returns only fixed 200/503 JSON bodies; checker errors,
 paths and credentials are never serialized. The readiness timeout is
 `LYNK_HEALTH_TIMEOUT` in typed configuration (positive Go duration, default

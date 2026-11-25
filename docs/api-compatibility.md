@@ -1,6 +1,9 @@
 # Linkding API compatibility research
 
-Status: Phase 0 design, no Lynk API implementation yet.
+Status: Phase 0 research plus P2-003 API foundation implemented. The
+endpoints covered by the foundation are listed below; search/pagination
+filters, update/archive, metadata fetching and asset/bundle routes remain
+unimplemented and are tracked as separate board work.
 
 ## Scope and sources
 
@@ -183,6 +186,22 @@ The exact DRF default error envelope is not a stable product DTO and must be
 captured in compatibility tests before intentionally reproducing it. At
 minimum Lynk must preserve status, JSON content type and field-keyed
 validation errors used by the extension.
+
+## Implemented foundation (P2-003)
+
+`internal/api/linkding` now serves the canonical trailing-slash routes
+`GET /api/user/profile/`, `GET /api/tags/`, `GET /api/bookmarks/check/`,
+`GET/POST /api/bookmarks/` and `GET/DELETE /api/bookmarks/{id}/`. The router
+answers `404` without a redirect for non-canonical paths, applies the
+`Token`/`Bearer` middleware to API requests, scopes every read and write to the
+authenticated user, and uses dedicated DTOs with the full Linkding bookmark
+field set (generated fields remain `null` or `[]`). List endpoints keep the
+`{count,next,previous,results}` envelope with `next`/`previous` set to `null`;
+`q`, `limit` and `offset` are not interpreted yet. Check returns the documented
+`{bookmark,metadata,auto_tags}` shape with bounded, null metadata and no
+network fetch. Field-keyed `400` responses, `401`, owner-scoped `404`, `201` and
+empty `204` are covered by `httptest` tests against a real migrated SQLite
+database; `make test-compat` runs those tests.
 
 ## Explicit non-requirements for Phase 1/3
 

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -22,12 +23,12 @@ func setupDB(t *testing.T) *sql.DB {
 	return db
 }
 
-func TestCreateFirstUserAndToken(t *testing.T) {
+func TestCreateToken(t *testing.T) {
 	db := setupDB(t)
 	ctx := context.Background()
-	info, err := CreateFirstUserAndToken(ctx, db, "alice", "main")
+	info, err := CreateToken(ctx, db, "alice", "main")
 	if err != nil {
-		t.Fatalf("CreateFirstUserAndToken: %v", err)
+		t.Fatalf("CreateToken: %v", err)
 	}
 	if info.UserID == 0 {
 		t.Error("expected non-zero user id")
@@ -50,7 +51,7 @@ func TestCreateFirstUserAndToken(t *testing.T) {
 func TestLookupByTokenRevoked(t *testing.T) {
 	db := setupDB(t)
 	ctx := context.Background()
-	info, err := CreateFirstUserAndToken(ctx, db, "bob", "t1")
+	info, err := CreateToken(ctx, db, "bob", "t1")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -72,12 +73,15 @@ func TestLookupByTokenRevoked(t *testing.T) {
 	if err == nil {
 		t.Error("expected error for revoked token")
 	}
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
 }
 
 func TestLookupByTokenConcurrent(t *testing.T) {
 	db := setupDB(t)
 	ctx := context.Background()
-	info, err := CreateFirstUserAndToken(ctx, db, "carol", "t2")
+	info, err := CreateToken(ctx, db, "carol", "t2")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -97,5 +101,28 @@ func TestLookupByTokenConcurrent(t *testing.T) {
 	close(errs)
 	for e := range errs {
 		t.Errorf("concurrent lookup error: %v", e)
+	}
+}
+
+func TestRevokeByPrefix(t *testing.T) {
+	db := setupDB(t)
+	ctx := context.Background()
+	info, err := CreateToken(ctx, db, "dave", "t3")
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	// Revoke by prefix
+	if err := RevokeByPrefix(ctx, db, info.Prefix); err != nil {
+		t.Fatalf("RevokeByPrefix: %v", err)
+	}
+	// Lookup should now fail
+	_, err = LookupByToken(ctx, db, info.Token)
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized after revoke, got %v", err)
+	}
+	// Revoke again should be not found
+	err = RevokeByPrefix(ctx, db, info.Prefix)
+	if !errors.Is(err, ErrTokenNotFound) {
+		t.Errorf("expected ErrTokenNotFound, got %v", err)
 	}
 }

@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -70,14 +71,25 @@ func runServer(ctx context.Context, lookup config.LookupFunc, out io.Writer) err
 }
 
 func runTokenCmd(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) error {
-	if len(args) == 0 || args[0] != "create" {
-		return fmt.Errorf("usage: lynk token create [--username NAME] [--name TOKENNAME]")
+	if len(args) == 0 {
+		return fmt.Errorf("usage: lynk token create [--username NAME] [--name TOKENNAME] | lynk token revoke --prefix PREFIX")
 	}
+	switch args[0] {
+	case "create":
+		return runTokenCreate(ctx, args[1:], lookup, out)
+	case "revoke":
+		return runTokenRevoke(ctx, args[1:], lookup, out)
+	default:
+		return fmt.Errorf("usage: lynk token create [--username NAME] [--name TOKENNAME] | lynk token revoke --prefix PREFIX")
+	}
+}
+
+func runTokenCreate(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) error {
 	fs := flag.NewFlagSet("token create", flag.ContinueOnError)
 	fs.SetOutput(out)
 	username := fs.String("username", "admin", "Username for the first user (used only when no users exist)")
 	tokenName := fs.String("name", "default", "Token name")
-	if err := fs.Parse(args[1:]); err != nil {
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
@@ -91,12 +103,46 @@ func runTokenCmd(ctx context.Context, args []string, lookup config.LookupFunc, o
 	}
 	defer db.Close()
 
-	info, err := auth.CreateFirstUserAndToken(ctx, db, *username, *tokenName)
+	info, err := auth.CreateToken(ctx, db, *username, *tokenName)
 	if err != nil {
 		return fmt.Errorf("create token: %w", err)
 	}
 	// Print raw token once (never log it)
-	fmt.Fprintf(out, "Token created for user_id=%d (username from DB). Save this token now, it will not be shown again.\n", info.UserID)
+	fmt.Fprintf(out, "Token created for user_id=%d. Save this token now, it will not be shown again.\n", info.UserID)
 	fmt.Fprintf(out, "TOKEN=%s\n", info.Token)
+	return nil
+}
+
+func runTokenRevoke(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) error {
+	fs := flag.NewFlagSet("token revoke", flag.ContinueOnError)
+	fs.SetOutput(out)
+	prefix := fs.String("prefix", "", "Token prefix to revoke (non-revoked)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *prefix == "" {
+		return fmt.Errorf("usage: lynk token revoke --prefix PREFIX")
+	}
+
+	cfg, err := config.LoadFrom(lookup)
+	if err != nil {
+		return fmt.Errorf("load configuration: %w", err)
+	}
+	db, err := database.Open(ctx, database.Config{Path: cfg.DatabasePath})
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer db.Close()
+
+	if err := auth.RevokeByPrefix(ctx, db, *prefix); err != nil {
+		if errors.Is(err, auth.ErrTokenNotFound) {
+			return fmt.Errorf("revoke token: token not found")
+		}
+		if errors.Is(err, auth.ErrTokenPrefixAmbiguous) {
+			return fmt.Errorf("revoke token: prefix is ambiguous")
+		}
+		return fmt.Errorf("revoke token: %w", err)
+	}
+	fmt.Fprintln(out, "Token revoked.")
 	return nil
 }

@@ -18,6 +18,8 @@ const (
 )
 
 var (
+	// ErrUnauthorized indicates authentication failed (invalid/missing/revoked credentials).
+	ErrUnauthorized = errors.New("unauthorized")
 	// ErrInvalidTokenFormat indicates the token is not a strict 40-hex string.
 	ErrInvalidTokenFormat = errors.New("invalid token format")
 	// ErrMissingAuthHeader indicates no Authorization header was provided.
@@ -75,27 +77,26 @@ type ParsedAuth struct {
 // It does not validate the token against a database; it only checks format and scheme.
 func ParseAuthorization(authHeader string) (*ParsedAuth, error) {
 	if strings.TrimSpace(authHeader) == "" {
-		return nil, ErrMissingAuthHeader
+		return nil, fmt.Errorf("%w: %v", ErrUnauthorized, ErrMissingAuthHeader)
 	}
 	// Split into scheme and credentials (only first space)
 	idx := strings.IndexAny(authHeader, " \t")
 	if idx <= 0 {
-		return nil, ErrUnsupportedAuthScheme
+		return nil, fmt.Errorf("%w: %v", ErrUnauthorized, ErrUnsupportedAuthScheme)
 	}
 	scheme := authHeader[:idx]
 	cred := strings.TrimSpace(authHeader[idx+1:])
 	if cred == "" {
-		return nil, ErrInvalidTokenFormat
+		return nil, fmt.Errorf("%w: %v", ErrUnauthorized, ErrInvalidTokenFormat)
 	}
 	// Case-insensitive scheme check
 	schemeLower := strings.ToLower(scheme)
 	if schemeLower != "token" && schemeLower != "bearer" {
-		return nil, ErrUnsupportedAuthScheme
+		return nil, fmt.Errorf("%w: %v", ErrUnauthorized, ErrUnsupportedAuthScheme)
 	}
-	// Normalize token: trim spaces
 	token := strings.TrimSpace(cred)
 	if err := ValidateTokenFormat(token); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrUnauthorized, err)
 	}
 	return &ParsedAuth{Token: strings.ToLower(token)}, nil
 }

@@ -1,0 +1,50 @@
+# P1-006 — Dockerfile i Compose
+
+| Pole | Wartość |
+|---|---|
+| Status | `BACKLOG` |
+| Priorytet | `P1` |
+| Owner | — |
+| Faza | Phase 1 |
+| Zależności | P1-002, P1-003, P1-004, P1-005 |
+
+## Cel
+
+Dostarczyć uruchamialny, jedousługowy deployment Docker zgodny ze specyfikacją.
+
+## Zakres
+
+Multi-stage build, statyczny/non-root runtime zgodny z driverem, CA
+certificates, `/data`, persistent volume, port i środowisko, restart policy,
+healthcheck.
+
+## Kryteria akceptacji
+
+- [ ] `make docker-build` buduje obraz.
+- [ ] `make docker-up` uruchamia zdrowy kontener.
+- [ ] Kontener działa jako non-root.
+- [ ] Dane pozostają po restarcie kontenera.
+- [ ] Compose ma dokładnie jedną usługę Lynk.
+- [ ] Obraz runtime nie zawiera toolchainu developerskiego.
+- [ ] HTTPS metadata path ma dostęp do CA certificates.
+
+## Weryfikacja
+
+Build, start, healthcheck, restart z zachowaniem wolumenu oraz inspekcja
+użytkownika i zawartości obrazu.
+
+## Postęp
+
+| Data | Status | Agent | Opis |
+|---|---|---|---|
+| 2026-11-25 | `BACKLOG` | — | Oczekuje na działającą aplikację i Makefile |
+
+## Blockery
+
+Brak.
+
+## Decision log
+
+| Data | Decyzja/pytanie | Status | Akceptacja PO |
+|---|---|---|---|
+| — | Distroless czy Alpine | Otwarte | — |

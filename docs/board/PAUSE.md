@@ -12,9 +12,9 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
 * **P1-007 — `DONE`**: Docker/Compose, `golangci-lint v2.15.0`, testy, race,
   vet i build przechodzą; wszystkie 14 zgłoszeń lintu zostało naprawionych i
   niezależnie zaakceptowanych.
-* **P2-002 — `IN_PROGRESS`**: Iceman Free implementuje token auth i bootstrap
-  CLI w worktree:
-  `/home/fox/.local/share/opencode/worktree/e89f91/p2-002-auth`
+* **P2-002 — `IN_PROGRESS`**: token auth, revoke, middleware/context i bootstrap
+  CLI są zintegrowane funkcjonalnie; pozostało 6 `errcheck` findings do
+  poprawy przed finalnym sign-offem.
 
 ## Decyzje P2-002
 
@@ -26,6 +26,6 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
 
 ## Zasady wznowienia
 
-1. Nie integrować P2-002 bez niezależnego review i pełnej macierzy testów.
-2. P2-002 prowadzić osobno od kolejnych endpointów API.
-3. Po akceptacji P2-002 utworzyć zadanie na DTO/router/endpointy Linkdinga.
+1. Naprawić 6 findings lintu i ponowić `make check`.
+2. Wymagać niezależnego review i pełnej macierzy testów przed integracją.
+3. Nie mieszać endpointów Linkdinga z zakończonym slice'em auth.

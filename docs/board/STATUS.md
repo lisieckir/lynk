@@ -29,6 +29,8 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | P1-001 | Warunek akceptacji | Review zaakceptował implementację warunkowo; pin Go/SQLite wymaga potwierdzenia w P1-003 | Koordynator + PO |
 | 2026-11-25 | P1-007 | Wynik lintu | `golangci-lint v2.15.0` zweryfikowany; 14 issue'ów naprawionych, `make check` bez waivera PASS | PO / developer P1-007 |
 | 2026-11-25 | P2-002 | Decyzja PO | Auth + bootstrap CLI jako osobny slice; pełne endpointy API później | PO |
+| 2026-11-25 | P2-002 | Akceptacja | Auth, revoke, middleware, testy i niezależny review PASS | PO |
+| 2026-11-25 | P2-002 | Blocker | 6 nowych `errcheck` findings po integracji; funkcjonalny review PASS, lint wymaga poprawki | PO |
 
 ## Historia zmian tablicy
 
@@ -60,4 +62,5 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | P1-007: build, health, restart, recreate i named-volume persistence PASS; lint nadal blokuje | OpenCode |
 | 2026-11-25 | P1-007: `golangci-lint v2.15.0` zweryfikowany i uruchomiony poza repo; `make check` FAIL na 14 issue'ach lintu, testy PASS | Big Pickle |
 | 2026-11-25 | Utworzono i przydzielono P2-002 agentowi Iceman Free | OpenCode |
+| 2026-11-25 | P2-002 zaakceptowane po poprawkach i niezależnym review | PO |
 | 2026-11-25 | P1-007 zaakceptowane po niezależnym review; lint, testy i Docker validation PASS | PO |

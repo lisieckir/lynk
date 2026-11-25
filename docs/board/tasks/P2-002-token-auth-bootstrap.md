@@ -41,14 +41,14 @@ zadaniem.
 
 ## Kryteria akceptacji
 
-- [ ] CLI tworzy/używa użytkownika, migruje bazę i nie uruchamia HTTP listenera.
-- [ ] Surowy token jest drukowany raz; nie trafia do bazy, logów ani błędów.
-- [ ] Token ma dokładnie 40 małych znaków hex i digest SHA-256 w bazie.
-- [ ] `Token`/`Bearer` są case-insensitive; niepoprawne tokeny dają
+- [x] CLI tworzy/używa użytkownika, migruje bazę i nie uruchamia HTTP listenera.
+- [x] Surowy token jest drukowany raz; nie trafia do bazy, logów ani błędów.
+- [x] Token ma dokładnie 40 małych znaków hex i digest SHA-256 w bazie.
+- [x] `Token`/`Bearer` są case-insensitive; niepoprawne tokeny dają
   `ErrUnauthorized`.
-- [ ] Revoked/unknown token nie uwierzytelnia użytkownika.
-- [ ] Middleware wstawia właściciela do kontekstu i nie loguje sekretów.
-- [ ] `gofmt`, `go vet`, `go test`, `go test -race`, `go mod tidy -diff`
+- [x] Revoked/unknown token nie uwierzytelnia użytkownika.
+- [x] Middleware wstawia właściciela do kontekstu i nie loguje sekretów.
+- [x] `gofmt`, `go vet`, `go test`, `go test -race`, `go mod tidy -diff`
   i `go mod verify` przechodzą.
 
 ## Postęp
@@ -57,12 +57,15 @@ zadaniem.
 |---|---|---|---|
 | 2026-11-25 | `READY` | OpenCode | Zadanie utworzone po decyzji PO |
 | 2026-11-25 | `IN_PROGRESS` | Iceman Free | Implementacja w izolowanym worktree |
+| 2026-11-25 | `IN_PROGRESS` | PO | Review funkcjonalny APPROVE; 6 nowych lint findings wymagają poprawy |
 
 ## Blockery
 
-P1-007 ma niezależny blocker: 14 zgłoszeń `golangci-lint`. Nie blokuje pracy
-nad auth, ale integracja wymaga osobnego review.
+Pozostało 6 zgłoszeń `errcheck` w CLI/auth. Endpointy Linkdinga pozostają
+zakresem kolejnego zadania.
 
 ## Raport końcowy
 
-Wypełnić przed `DONE`: zmienione pliki, testy, ograniczenia i follow-upy.
+Zmienione pliki: `internal/auth/*`, `cmd/lynk/main.go` i testy CLI.
+Weryfikacja: build, test, race, vet, tidy/verify PASS; review niezależny APPROVE.
+Follow-up: utworzyć zadanie na DTO/router/endpointy Linkdinga.

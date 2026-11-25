@@ -61,8 +61,9 @@ of concept. P1-004 adds handler tests in `internal/health` and integration
 tests in `internal/server` for healthy and unavailable databases, configured
 readiness timeouts, typed-nil checkers, response redaction, canonical `/health`
 versus `/health/` routing, and cleanup paths that attempt database close even
-after shutdown or serve errors. API and Linkding compatibility tests are
-deferred to later tasks.
+after shutdown or serve errors. P2-002 adds real SQLite auth tests for token
+generation/digest lookup, revocation, CLI bootstrap and HTTP middleware.
+Linkding API compatibility tests are deferred to the next task.
 
 ## Phase 1 validation (2026-11-25)
 

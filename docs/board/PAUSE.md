@@ -16,6 +16,8 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
   są zintegrowane; finalny review, linter, testy i race przeszły.
 * **P2-003 — `DONE`**: DTO/router, minimalny kontrakt API Linkdinga,
   compatibility tests i owner scoping zostały zintegrowane po review.
+* **P2-004 — `IN_PROGRESS`**: Tidepool Alpha Free implementuje search,
+  pagination i mutacje bookmarków.
 
 ## Decyzje P2-002
 

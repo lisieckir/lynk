@@ -12,9 +12,8 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
 * **P1-007 — `DONE`**: Docker/Compose, `golangci-lint v2.15.0`, testy, race,
   vet i build przechodzą; wszystkie 14 zgłoszeń lintu zostało naprawionych i
   niezależnie zaakceptowanych.
-* **P2-002 — `IN_PROGRESS`**: token auth, revoke, middleware/context i bootstrap
-  CLI są zintegrowane funkcjonalnie; pozostało 6 `errcheck` findings do
-  poprawy przed finalnym sign-offem.
+* **P2-002 — `DONE`**: token auth, revoke, middleware/context i bootstrap CLI
+  są zintegrowane; finalny review, linter, testy i race przeszły.
 
 ## Decyzje P2-002
 

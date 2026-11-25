@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `DONE` |
 | Priorytet | `P0` |
 | Owner | Iceman Free |
 | Faza | Phase 3 (API Linkdinga) przeciągnięta do przodu decyzją PO |
@@ -57,12 +57,12 @@ zadaniem.
 |---|---|---|---|
 | 2026-11-25 | `READY` | OpenCode | Zadanie utworzone po decyzji PO |
 | 2026-11-25 | `IN_PROGRESS` | Iceman Free | Implementacja w izolowanym worktree |
-| 2026-11-25 | `IN_PROGRESS` | PO | Review funkcjonalny APPROVE; 6 nowych lint findings wymagają poprawy |
+| 2026-11-25 | `IN_PROGRESS` | PO | Review funkcjonalny APPROVE; 6 nowych lint findings wymagało poprawy |
+| 2026-11-25 | `DONE` | PO | Finalny review APPROVE; linter 0, testy/race/build PASS |
 
 ## Blockery
 
-Pozostało 6 zgłoszeń `errcheck` w CLI/auth. Endpointy Linkdinga pozostają
-zakresem kolejnego zadania.
+Brak blockerów. Endpointy Linkdinga pozostają zakresem kolejnego zadania.
 
 ## Raport końcowy
 

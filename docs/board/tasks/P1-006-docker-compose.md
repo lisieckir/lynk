@@ -2,9 +2,9 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BACKLOG` |
+| Status | `IN_PROGRESS` |
 | Priorytet | `P1` |
-| Owner | — |
+| Owner | Tidepool Alpha Free |
 | Faza | Phase 1 |
 | Zależności | P1-002, P1-003, P1-004, P1-005 |
 
@@ -38,6 +38,7 @@ użytkownika i zawartości obrazu.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Oczekuje na działającą aplikację i Makefile |
+| 2026-11-25 | `IN_PROGRESS` | Tidepool Alpha Free | Rozpoczęto Dockerfile i Compose |
 
 ## Blockery
 

@@ -1,0 +1,36 @@
+# Lynk — single-service Compose deployment (docs/SPEC.md section 8,
+# docs/makefile-plan.md).
+#
+# Variables (overridable via command line or environment):
+#   LYNK_PORT             published host port for the app (default 9090)
+#   DOCKER_IMAGE / DOCKER_TAG  image used by make docker-up / docker-pull, etc.
+#   LYNK_ENV, LYNK_LOG_LEVEL, LYNK_BASE_URL, LYNK_HEALTH_TIMEOUT  app config
+
+services:
+  lynk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_IMAGE:-ghcr.io/lisieckir/lynk}:${DOCKER_TAG:-dev}
+    restart: unless-stopped
+    ports:
+      - "${LYNK_PORT:-9090}:9090"
+    environment:
+      LYNK_ENV: ${LYNK_ENV:-production}
+      LYNK_HTTP_ADDR: ":9090"
+      LYNK_DATA_DIR: /data
+      LYNK_DATABASE_PATH: /data/lynk.db
+      LYNK_LOG_LEVEL: ${LYNK_LOG_LEVEL:-info}
+      LYNK_BASE_URL: ${LYNK_BASE_URL:-https://lynk.example.com}
+      LYNK_HEALTH_TIMEOUT: ${LYNK_HEALTH_TIMEOUT:-2s}
+    volumes:
+      - lynk_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9090/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  lynk_data:

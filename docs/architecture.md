@@ -158,6 +158,11 @@ container healthcheck against `/health`, and contains no compiler or package
 manager. Compose defines exactly one service, one persistent data volume,
 restart policy, environment configuration and healthcheck.
 
+The selected runtime is Alpine 3.20.10 with digest pinning. Alpine was chosen
+over distroless because the image supplies CA certificates, BusyBox `wget` for
+the healthcheck and `sh` for the documented debugging fallback. The final
+runtime still runs as a dedicated non-root UID and contains no Go toolchain.
+
 The application creates its data directory/database and applies migrations
 without overwriting existing data.
 

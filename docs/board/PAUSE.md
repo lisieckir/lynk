@@ -18,6 +18,8 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
   compatibility tests i owner scoping zostały zintegrowane po review.
 * **P2-004 — `IN_PROGRESS`**: Tidepool Alpha Free implementuje search,
   pagination i mutacje bookmarków.
+* **P2-005 — `BACKLOG`**: replay kontraktu rozszerzenia i parity pól po
+  akceptacji P2-004.
 
 ## Decyzje P2-002
 

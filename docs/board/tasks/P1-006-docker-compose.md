@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `REVIEW` |
 | Priorytet | `P1` |
 | Owner | Tidepool Alpha Free |
 | Faza | Phase 1 |
@@ -39,6 +39,7 @@ użytkownika i zawartości obrazu.
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Oczekuje na działającą aplikację i Makefile |
 | 2026-11-25 | `IN_PROGRESS` | Tidepool Alpha Free | Rozpoczęto Dockerfile i Compose |
+| 2026-11-25 | `REVIEW` | OpenCode | Dockerfile i Compose gotowe do niezależnego review |
 
 ## Blockery
 

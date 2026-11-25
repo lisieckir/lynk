@@ -26,7 +26,7 @@ Właściciel tablicy: PO / koordynator projektu
 | Data | Zadanie | Typ | Opis | Decyzja/owner |
 |---|---|---|---|---|
 | 2026-11-25 | P1-001 | Warunek akceptacji | Review zaakceptował implementację warunkowo; pin Go/SQLite wymaga potwierdzenia w P1-003 | Koordynator + PO |
-| 2026-11-25 | P1-007 | Narzędzie wymagane | `golangci-lint` nie jest zainstalowany; Docker/Compose walidowane poprawnie | PO / CI |
+| 2026-11-25 | P1-007 | Wynik lintu | `golangci-lint v2.15.0` dostępny poza repozytorium; `make check` bez waivera FAIL na 14 issue'ach (12 `errcheck`, 2 `staticcheck`); `test`/`test-race` PASS | PO / developer P1-007 |
 
 ## Historia zmian tablicy
 
@@ -56,3 +56,4 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | P2-001 zaakceptowane po poprawkach URL i review końcowym | GPT-6 Luna |
 | 2026-11-25 | Docker/Compose dostępne; wznowiono P1-007 walidację kontenera | OpenCode |
 | 2026-11-25 | P1-007: build, health, restart, recreate i named-volume persistence PASS; lint nadal blokuje | OpenCode |
+| 2026-11-25 | P1-007: `golangci-lint v2.15.0` zweryfikowany i uruchomiony poza repo; `make check` FAIL na 14 issue'ach lintu, testy PASS | Big Pickle |

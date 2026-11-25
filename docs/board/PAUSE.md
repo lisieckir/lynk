@@ -17,13 +17,13 @@ Walidacja Phase 1, Docker foundation i start P2-001 są już na `main`; sprawdź
 
 ### Phase 1
 
-P1-001–P1-006 są zakończone. P1-007 jest `BLOCKED` wyłącznie przez brak:
-
-* Docker Engine;
-* Docker Compose plugin;
-* `golangci-lint`.
-
-Wyniki i wymagane komendy są w `docs/development.md`.
+P1-001–P1-006 są zakończone. P1-007 pozostaje `BLOCKED`, ale nie przez brak
+narzędzi: Docker Engine/Compose są dostępne, a `golangci-lint v2.15.0` można
+uruchomić poza repozytorium (checksum SHA-256 zweryfikowany). Blokerem jest
+14 zgłoszeń domyślnego lintu (12 `errcheck`, 2 `staticcheck`), przez co
+`make check` bez waivera kończy się `FAIL`; `make test` i `make test-race`
+przechodzą. Szczegóły i dokładny następny krok są w
+`docs/board/tasks/P1-007-phase1-validation.md`.
 
 ### Phase 2
 

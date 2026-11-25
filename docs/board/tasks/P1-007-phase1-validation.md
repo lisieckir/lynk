@@ -38,8 +38,32 @@ restartach.
 | 2026-11-25 | `BLOCKED` | GPT-6 Luna | Go/SQLite PASS; Docker/Compose i pełny lint zablokowane przez brak narzędzi |
 | 2026-11-25 | `IN_PROGRESS` | OpenCode | Docker/Compose dostępne; wznowiono walidację kontenera |
 | 2026-11-25 | `BLOCKED` | OpenCode | Build, health, restart, recreate i named-volume persistence PASS; brak `golangci-lint` blokuje bez-waiverowy sign-off |
+| 2026-11-25 | `BLOCKED` | Big Pickle | `golangci-lint v2.15.0` uruchomiony poza repozytorium; `make check` bez waivera FAIL na 14 issue'ach lintu, `make test` i `make test-race` PASS |
 
 ## Blockery
 
-Docker Engine i Compose zostały zwalidowane. Jedyny pozostały blocker to brak
-`golangci-lint`, przez co `make check` bez waivera nie może przejść.
+Docker Engine, Compose i `golangci-lint` są dostępne; brak narzędzi nie jest już
+blockerem. Pozostały blocker to 14 rzeczywistych zgłoszeń lintu z domyślnego
+zestawu reguł (12 `errcheck`, 2 `staticcheck`), przez co `make check` bez
+waivera nie przechodzi.
+
+Zweryfikowane 2026-11-25 przez Big Pickle:
+
+- `golangci-lint v2.15.0` pobrany z oficjalnego release'u GitHub, suma SHA-256
+  zweryfikowana z `golangci-lint-2.15.0-checksums.txt`; plik znajduje się poza
+  repozytorium w `/tmp/opencode/golangci-lint-v2.15.0/`, `git status` pozostał
+  czysty.
+- `make check LINT_TOOL=/tmp/opencode/golangci-lint-v2.15.0/golangci-lint-2.15.0-linux-amd64/golangci-lint`
+  wykonuje `fmt` i `vet`, następnie kończy się `FAIL` w `lint` (exit 2).
+- `make test` i `make test-race` przechodzą.
+
+Zgłoszenia do poprawy: `cmd/lynk/main_test.go:166`,
+`internal/bookmark/bookmark.go:102,159,498`, `internal/database/backup.go:43,88`,
+`internal/database/backup_test.go:42`, `internal/database/database.go:212`,
+`internal/database/database_test.go:243`,
+`internal/server/server_test.go:60,280,296,299`,
+`internal/shutdown/shutdown_test.go:118`.
+
+Następny krok: poprawić zgłoszone błędy (nieobsłużone `Close` oraz `nil`
+`Context` w testach), a następnie ponownie uruchomić `make check` z tym samym
+linterem. `LINT_TOOL=none` nie może być użyty jako potwierdzenie tego kryterium.

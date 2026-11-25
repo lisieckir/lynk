@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `REVIEW` |
 | Priorytet | `P1` |
 | Owner | Tidepool Alpha Free |
 | Faza | Phase 1 |
@@ -34,6 +34,7 @@ tymczasową bazą i wolumenem.
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Plan w `docs/makefile-plan.md` |
 | 2026-11-25 | `IN_PROGRESS` | Tidepool Alpha Free | Rozpoczęto implementację Makefile |
+| 2026-11-25 | `REVIEW` | OpenCode | Makefile gotowy do niezależnego review |
 
 ## Blockery
 

@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `REVIEW` |
+| Status | `DONE` |
 | Priorytet | `P1` |
 | Owner | Tidepool Alpha Free |
 | Faza | Phase 1 |
@@ -15,13 +15,13 @@ sekcją 9 `SPEC.md`.
 
 ## Kryteria akceptacji
 
-- [ ] `make help` opisuje każdy publiczny target.
-- [ ] Działają targety development, test, build, database, health i Docker
+- [x] `make help` opisuje każdy publiczny target.
+- [x] Działają targety development, test, build, database, health i Docker
       przewidziane dla aktualnego etapu.
-- [ ] Użyto `.PHONY`, zmiennych i fail-fast.
-- [ ] `clean`, `docker-down` i `docker-clean` nie usuwają danych persistent.
-- [ ] `VERSION`, image/tag i `COMPOSE` są konfigurowalne.
-- [ ] Nie ma obowiązkowego Node.js.
+- [x] Użyto `.PHONY`, zmiennych i fail-fast.
+- [x] `clean`, `docker-down` i `docker-clean` nie usuwają danych persistent.
+- [x] `VERSION`, image/tag i `COMPOSE` są konfigurowalne.
+- [x] Nie ma obowiązkowego Node.js.
 
 ## Weryfikacja
 
@@ -35,6 +35,7 @@ tymczasową bazą i wolumenem.
 | 2026-11-25 | `BACKLOG` | — | Plan w `docs/makefile-plan.md` |
 | 2026-11-25 | `IN_PROGRESS` | Tidepool Alpha Free | Rozpoczęto implementację Makefile |
 | 2026-11-25 | `REVIEW` | OpenCode | Makefile gotowy do niezależnego review |
+| 2026-11-25 | `DONE` | Flint 40B Free | Review zaakceptował restore WAL-safe i wszystkie poprawki |
 
 ## Blockery
 

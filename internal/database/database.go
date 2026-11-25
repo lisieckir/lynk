@@ -209,7 +209,7 @@ func verifyPragmas(ctx context.Context, db *sql.DB, wantBusyTimeout time.Duratio
 	if err != nil {
 		return fmt.Errorf("acquire connection for pragma verification: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	return verifyPragmasOnConn(ctx, conn, wantBusyTimeout)
 }
 

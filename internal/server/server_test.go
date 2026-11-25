@@ -57,7 +57,7 @@ func getPath(t *testing.T, addr, path string) (int, string) {
 	if err != nil {
 		t.Fatalf("GET %s: %v", path, err)
 	}
-	defer resp.Body.Close()
+	t.Cleanup(func() { _ = resp.Body.Close() })
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("read %s response: %v", path, err)
@@ -277,7 +277,7 @@ func TestServeClosesDatabaseWhenServeFails(t *testing.T) {
 func TestRunListenFailureClosesDatabase(t *testing.T) {
 	db, _ := openTestDB(t)
 	occupied := newListener(t)
-	defer occupied.Close()
+	t.Cleanup(func() { _ = occupied.Close() })
 
 	err := Run(context.Background(), DefaultConfig(occupied.Addr().String()), db, nil)
 	if err == nil {
@@ -293,10 +293,11 @@ func TestRunListenFailureClosesDatabase(t *testing.T) {
 
 func TestServeRejectsNilArgumentsAndClosesDatabase(t *testing.T) {
 	ln := newListener(t)
-	defer ln.Close()
+	t.Cleanup(func() { _ = ln.Close() })
 
 	db, _ := openTestDB(t)
-	if err := Serve(nil, Config{}, ln, db, nil); err == nil {
+	var nilCtx context.Context // nil on purpose: Serve must reject it
+	if err := Serve(nilCtx, Config{}, ln, db, nil); err == nil {
 		t.Error("Serve accepted a nil context")
 	}
 	if err := db.PingContext(context.Background()); err == nil {

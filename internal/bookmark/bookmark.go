@@ -99,7 +99,7 @@ func (s *Service) Create(ctx context.Context, userID int64, in CreateInput) (Boo
 	if err != nil {
 		return Bookmark{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	existing, err := getByNormalized(ctx, tx, userID, normalized)
 	now := s.now().UTC()
@@ -156,7 +156,7 @@ func (s *Service) update(ctx context.Context, userID, id int64, in UpdateInput, 
 	if err != nil {
 		return Bookmark{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	current, err := getByID(ctx, tx, userID, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Bookmark{}, ErrNotFound
@@ -495,7 +495,7 @@ func loadTags(ctx context.Context, q interface {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	tags := []string{}
 	for rows.Next() {
 		var name string

@@ -163,7 +163,7 @@ func TestRunServesHealthUntilCancelled(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	defer resp.Body.Close()
+	t.Cleanup(func() { _ = resp.Body.Close() })
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("health status = %d, want %d", resp.StatusCode, http.StatusOK)
 	}

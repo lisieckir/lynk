@@ -40,7 +40,7 @@ func Backup(ctx context.Context, db *sql.DB, dstPath string) error {
 	if err != nil {
 		return fmt.Errorf("acquire source connection for backup: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	err = conn.Raw(func(raw any) error {
 		backupper, ok := raw.(onlineBackupper)
@@ -85,7 +85,7 @@ func VerifyBackup(ctx context.Context, path string) error {
 	if err != nil {
 		return fmt.Errorf("open backup %q: %w", path, err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var result string
 	if err := db.QueryRowContext(ctx, "PRAGMA integrity_check").Scan(&result); err != nil {

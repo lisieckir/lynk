@@ -39,7 +39,7 @@ func TestBackupIsConsistentWithUncheckpointedWAL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backup.Close()
+	t.Cleanup(func() { _ = backup.Close() })
 	var result string
 	if err := backup.QueryRowContext(ctx, `PRAGMA integrity_check`).Scan(&result); err != nil {
 		t.Fatal(err)

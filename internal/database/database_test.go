@@ -240,7 +240,7 @@ func TestPragmasOnEveryPooledConnection(t *testing.T) {
 				acquired <- struct{}{}
 				return
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 			err = verifyPragmasOnConn(ctx, conn, cfg.BusyTimeout)
 			acquired <- struct{}{}
 			<-release // Hold all connections at once to force separate physical ones.

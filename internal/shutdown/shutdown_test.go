@@ -115,7 +115,8 @@ func TestWaitWithoutCleanup(t *testing.T) {
 }
 
 func TestWaitRejectsNilContext(t *testing.T) {
-	if err := Wait(nil, time.Second, nil); err == nil {
+	var nilCtx context.Context // nil on purpose: Wait must reject it
+	if err := Wait(nilCtx, time.Second, nil); err == nil {
 		t.Fatal("Wait accepted a nil context")
 	}
 }

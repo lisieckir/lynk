@@ -84,7 +84,7 @@ func runTokenCmd(ctx context.Context, args []string, lookup config.LookupFunc, o
 	}
 }
 
-func runTokenCreate(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) error {
+func runTokenCreate(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) (retErr error) {
 	fs := flag.NewFlagSet("token create", flag.ContinueOnError)
 	fs.SetOutput(out)
 	username := fs.String("username", "admin", "Username for the first user (used only when no users exist)")
@@ -101,19 +101,27 @@ func runTokenCreate(ctx context.Context, args []string, lookup config.LookupFunc
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
-	defer db.Close()
+	defer func() {
+		if cerr := db.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("close database: %w", cerr)
+		}
+	}()
 
 	info, err := auth.CreateToken(ctx, db, *username, *tokenName)
 	if err != nil {
 		return fmt.Errorf("create token: %w", err)
 	}
 	// Print raw token once (never log it)
-	fmt.Fprintf(out, "Token created for user_id=%d. Save this token now, it will not be shown again.\n", info.UserID)
-	fmt.Fprintf(out, "TOKEN=%s\n", info.Token)
+	if _, err := fmt.Fprintf(out, "Token created for user_id=%d. Save this token now, it will not be shown again.\n", info.UserID); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(out, "TOKEN=%s\n", info.Token); err != nil {
+		return err
+	}
 	return nil
 }
 
-func runTokenRevoke(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) error {
+func runTokenRevoke(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) (retErr error) {
 	fs := flag.NewFlagSet("token revoke", flag.ContinueOnError)
 	fs.SetOutput(out)
 	prefix := fs.String("prefix", "", "Token prefix to revoke (non-revoked)")
@@ -132,7 +140,11 @@ func runTokenRevoke(ctx context.Context, args []string, lookup config.LookupFunc
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
-	defer db.Close()
+	defer func() {
+		if cerr := db.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("close database: %w", cerr)
+		}
+	}()
 
 	if err := auth.RevokeByPrefix(ctx, db, *prefix); err != nil {
 		if errors.Is(err, auth.ErrTokenNotFound) {
@@ -143,6 +155,8 @@ func runTokenRevoke(ctx context.Context, args []string, lookup config.LookupFunc
 		}
 		return fmt.Errorf("revoke token: %w", err)
 	}
-	fmt.Fprintln(out, "Token revoked.")
+	if _, err := fmt.Fprintln(out, "Token revoked."); err != nil {
+		return err
+	}
 	return nil
 }

@@ -144,7 +144,7 @@ func LookupByToken(ctx context.Context, db *sql.DB, rawToken string) (*User, err
 // RevokeByPrefix revokes a non-revoked token identified by its prefix.
 // Returns ErrTokenNotFound if none, ErrTokenPrefixAmbiguous if multiple match.
 // This is safe: it does not reveal token details beyond the operation result.
-func RevokeByPrefix(ctx context.Context, db *sql.DB, prefix string) error {
+func RevokeByPrefix(ctx context.Context, db *sql.DB, prefix string) (retErr error) {
 	if prefix == "" {
 		return ErrTokenNotFound
 	}
@@ -155,7 +155,11 @@ func RevokeByPrefix(ctx context.Context, db *sql.DB, prefix string) error {
 	if err != nil {
 		return fmt.Errorf("revoke lookup: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if cerr := rows.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("revoke close rows: %w", cerr)
+		}
+	}()
 	var ids []int64
 	for rows.Next() {
 		var id int64
@@ -174,8 +178,7 @@ func RevokeByPrefix(ctx context.Context, db *sql.DB, prefix string) error {
 		return ErrTokenPrefixAmbiguous
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
-	_, err = db.ExecContext(ctx, `UPDATE api_tokens SET revoked_at = ? WHERE id = ?`, now, ids[0])
-	if err != nil {
+	if _, err := db.ExecContext(ctx, `UPDATE api_tokens SET revoked_at = ? WHERE id = ?`, now, ids[0]); err != nil {
 		return fmt.Errorf("revoke update: %w", err)
 	}
 	return nil

@@ -1,0 +1,17 @@
+# Local build output
+/bin/
+/dist/
+/lynk
+
+# Local runtime data and backups
+/.data/
+
+# Local environment configuration (keep tracked templates)
+.env
+.env.*
+!.env.example
+
+# Test and coverage artifacts
+*.test
+coverage.out
+coverage.html

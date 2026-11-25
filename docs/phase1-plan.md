@@ -5,11 +5,13 @@ to remain small and independently verifiable.
 
 ## 1. Bootstrap and toolchain
 
-1. Select and pin the Go version and `modernc.org/sqlite` version.
+1. Select and pin the Go version and an initial `modernc.org/sqlite` version.
+   P1-003 must validate the pin against FTS5, WAL and backup smoke tests; a
+   failed validation reopens this decision before Phase 1 is complete.
 2. Initialize `go.mod` with only the selected production dependency.
 3. Add `.gitignore`, `.dockerignore` and a minimal command entry point.
-4. Add the initial Makefile skeleton and make `make help`, `make deps`,
-   `make fmt`, `make vet` and `make test` work.
+4. Add the initial Makefile skeleton in P1-005 and make `make help`,
+   `make deps`, `make fmt`, `make vet` and `make test` work.
 5. Record the exact upstream revisions and driver versions in development
    documentation.
 

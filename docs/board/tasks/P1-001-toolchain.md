@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `REVIEW` |
 | Priorytet | `P1` |
 | Owner | Big Pickle |
 | Faza | Phase 1 |
@@ -22,7 +22,7 @@ funkcji aplikacyjnych.
 * przypiąć `modernc.org/sqlite` po smoke-testach kompatybilności;
 * utworzyć minimalny entrypoint `cmd/lynk`;
 * dodać `.gitignore` i `.dockerignore`;
-* uruchomić podstawowe targety Makefile.
+* przygotować minimalny punkt wejścia do późniejszego użycia przez Makefile.
 
 ### Poza zakresem
 
@@ -33,15 +33,29 @@ funkcji aplikacyjnych.
 
 ## Kryteria akceptacji
 
-- [ ] `go test ./...` działa na czystym checkoutcie.
-- [ ] `go mod tidy`, `go mod verify` nie zgłaszają problemów.
-- [ ] Wersje Go i zależności są jawnie udokumentowane.
-- [ ] Nie dodano zależności bez uzasadnienia.
-- [ ] Nie ma jeszcze funkcji aplikacyjnych poza uruchamianiem fundamentu.
+- [x] `go test ./...` działa na czystym checkoutcie.
+- [x] `go mod tidy`, `go mod verify` nie zgłaszają problemów.
+- [x] Wersje Go i zależności są jawnie udokumentowane
+      (`docs/development.md`, `docs/architecture.md`).
+- [x] Wybrana wersja `modernc.org/sqlite` jest przypięta i uzasadniona;
+      P1-003 zweryfikuje jej FTS5/WAL/backup.
+- [x] Nie dodano zależności bez uzasadnienia.
+- [x] Nie ma jeszcze funkcji aplikacyjnych poza uruchamianiem fundamentu.
 
 ## Weryfikacja
 
-`make deps`, `make fmt`, `make vet`, `make test`.
+| Komenda | Wynik (2026-11-25, Go `1.27.4`) |
+|---|---|
+| `gofmt -l .` | brak plików wymagających formatowania |
+| `go build ./...` | sukces, błędów brak |
+| `go test ./...` | `ok github.com/lisieckir/lynk/cmd/lynk` (`TestBootstrapEntrypoint`) |
+| `go vet ./...` | sukces, błędów brak |
+| `go mod tidy -diff` | brak różnic |
+| `go mod verify` | `all modules verified` |
+
+`go build ./cmd/lynk` jest objęty przez `go build ./...`. Testy domenowe,
+SQLite i HTTP są celowo odroczone do P1-003/P1-004; P1-001 zawiera tylko
+smoke-test potwierdzający kompilację i czysty powrót entrypointu.
 
 ## Postęp
 
@@ -49,13 +63,18 @@ funkcji aplikacyjnych.
 |---|---|---|---|
 | 2026-11-25 | `READY` | — | Zadanie przygotowane |
 | 2026-11-25 | `IN_PROGRESS` | Big Pickle | Agent rozpoczął pracę w izolowanym worktree |
+| 2026-11-25 | `REVIEW` | OpenCode | Implementacja gotowa do niezależnego code review |
+| 2026-11-25 | `REVIEW` | Big Pickle | Poprawki po code review: dokumentacja wersji jako prowizorycznych, README, ignorowanie `.env`, smoke-test i ponowna weryfikacja |
 
 ## Blockery
 
-Brak.
+Implementacja zaakceptowana przez code review. Finalne zamknięcie zadania
+wymaga potwierdzenia prowizorycznego pinu Go/SQLite w P1-003.
 
 ## Decision log
 
 | Data | Decyzja/pytanie | Status | Akceptacja PO |
 |---|---|---|---|
-| — | Wersja Go i dokładna wersja SQLite drivera | Oczekuje weryfikacji | — |
+| 2026-11-25 | Go `1.27.4` i `modernc.org/sqlite` `v1.63.0` jako prowizoryczne piny P1-001 | P1-003 ma zweryfikować FTS5/WAL/backup; decyzja nie jest finalna | — |
+| 2026-11-25 | Dodanie dyrektywy `toolchain` w `go.mod` | Nie dodano: `go 1.27.4` wyznacza minimalną wersję, a dyrektywa mogłaby wymusić przełączenie toolchainu; patrz `docs/development.md` | — |
+| 2026-11-25 | Niezależny code review po poprawkach | APPROVE warunkowo; brak blockerów technicznych, pin oczekuje na P1-003 | Flint 40B Free |

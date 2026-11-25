@@ -81,6 +81,8 @@ akceptacji. Przejście do `PO_REVIEW` jest obowiązkowe, gdy zadanie:
 5. Agent nie oznacza zadania jako `DONE`, jeżeli nie wykonał kryteriów
    akceptacji.
 6. PO może odrzucić zadanie do `IN_PROGRESS` z komentarzem opisującym brak.
+7. Przed `DONE` agent sprawdza, czy wpis w `STATUS.md` oraz historia postępu
+   w pliku zadania są zgodne z rzeczywistym stanem.
 
 ## Zasady współpracy i konfliktów
 

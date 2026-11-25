@@ -1,65 +1,31 @@
-# Stan projektu — pauza przed restartem
+# Stan projektu — aktualny
 
 Data: 2026-11-25
 
 ## Stan główny
 
-Ostatni wypchnięty commit przed pauzą:
-
-```text
-285e356 chore: send bookmark domain to review
-```
-
-Walidacja Phase 1, Docker foundation i start P2-001 są już na `main`; sprawdź
-`git log --oneline` po wznowieniu.
+`main` zawiera P2-001 w commicie `5d265bf` oraz wyniki Docker validation.
+P2-001 jest zakończone i zaakceptowane po niezależnym review.
 
 ## Zadania
 
-### Phase 1
+* **P1-007 — `BLOCKED`**: Docker/Compose i `golangci-lint v2.15.0` są
+  dostępne, ale `make check` wykrywa 14 realnych problemów (12 `errcheck`,
+  2 `staticcheck`). Testy i race przechodzą.
+* **P2-002 — `IN_PROGRESS`**: Iceman Free implementuje token auth i bootstrap
+  CLI w worktree:
+  `/home/fox/.local/share/opencode/worktree/e89f91/p2-002-auth`
 
-P1-001–P1-006 są zakończone. P1-007 pozostaje `BLOCKED`, ale nie przez brak
-narzędzi: Docker Engine/Compose są dostępne, a `golangci-lint v2.15.0` można
-uruchomić poza repozytorium (checksum SHA-256 zweryfikowany). Blokerem jest
-14 zgłoszeń domyślnego lintu (12 `errcheck`, 2 `staticcheck`), przez co
-`make check` bez waivera kończy się `FAIL`; `make test` i `make test-race`
-przechodzą. Szczegóły i dokładny następny krok są w
-`docs/board/tasks/P1-007-phase1-validation.md`.
+## Decyzje P2-002
 
-### Phase 2
+* `lynk token create` drukuje surowy token tylko raz.
+* Token ma 40 znaków hex; w bazie przechowywany jest wyłącznie SHA-256 digest
+  i prefix.
+* Akceptowane są case-insensitive schematy `Token` i `Bearer`.
+* Pełne endpointy API Linkdinga będą osobnym zadaniem po review P2-002.
 
-P2-001 jest `PAUSED`, nie jest zintegrowane i nie jest zakończone.
+## Zasady wznowienia
 
-Ostatni review zaakceptował:
-
-* naprawę deadlocka `List` przy `MaxOpenConns(1)`;
-* ownership i transakcje;
-* FTS5/tag synchronization;
-* duplicate semantics;
-* URL schemes i większość normalizacji.
-
-Pozostała ostatnia poprawka zgodności z upstream Linkding:
-
-1. port `:0` — upstream pomija port o wartości zero;
-2. malformed query escape, np. `?a=%ZZ` — upstream toleruje i re-enkoduje
-   wartość do `a=%25ZZ`.
-
-Po tej poprawce wymagany jest ponowny review, potem selektywna integracja
-worktree i pełna walidacja.
-
-## Worktree do wznowienia
-
-```text
-/home/fox/.local/share/opencode/worktree/e89f91/p2-001-bookmark-domain
-```
-
-Worktree zawiera niedokończone, niezatwierdzone zmiany P2-001. Nie kopiować
-ich do `main` bez ponownego sprawdzenia `git status` i wyniku review.
-
-## Procedura wznowienia
-
-1. Sprawdź `git status`, `git log --oneline` i `git worktree list`.
-2. Odczytaj ten plik oraz `docs/board/STATUS.md`.
-3. Sprawdź, czy agent P2-001 pozostawił zmiany w opisanym worktree.
-4. Dokończ dwa edge-case’y URL.
-5. Uruchom niezależny review.
-6. Dopiero po `APPROVE` zintegruj P2-001, zaktualizuj board i wykonaj push.
+1. Nie integrować P2-002 bez niezależnego review i pełnej macierzy testów.
+2. Poprawki lintu prowadzić osobno od auth.
+3. Po akceptacji P2-002 utworzyć zadanie na DTO/router/endpointy Linkdinga.

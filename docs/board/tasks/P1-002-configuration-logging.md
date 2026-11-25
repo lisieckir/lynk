@@ -2,9 +2,9 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BACKLOG` |
+| Status | `IN_PROGRESS` |
 | Priorytet | `P1` |
-| Owner | — |
+| Owner | Big Pickle |
 | Faza | Phase 1 |
 | Zależności | P1-001 |
 
@@ -38,6 +38,7 @@ niepoprawną.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Oczekuje na P1-001 |
+| 2026-11-25 | `IN_PROGRESS` | Big Pickle | Rozpoczęto konfigurację i logowanie |
 
 ## Blockery
 

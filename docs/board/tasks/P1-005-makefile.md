@@ -2,9 +2,9 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BACKLOG` |
+| Status | `IN_PROGRESS` |
 | Priorytet | `P1` |
-| Owner | — |
+| Owner | Tidepool Alpha Free |
 | Faza | Phase 1 |
 | Zależności | P1-001 |
 
@@ -33,6 +33,7 @@ tymczasową bazą i wolumenem.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Plan w `docs/makefile-plan.md` |
+| 2026-11-25 | `IN_PROGRESS` | Tidepool Alpha Free | Rozpoczęto implementację Makefile |
 
 ## Blockery
 

@@ -2,9 +2,9 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `READY` |
+| Status | `IN_PROGRESS` |
 | Priorytet | `P0` |
-| Owner | — |
+| Owner | Hy4 Flash Free |
 | Faza | Phase 3 przeciągnięta do przodu decyzją PO |
 | Zależności | P1-003, P2-001, P2-002 |
 
@@ -49,6 +49,7 @@ nie zmieszczą się bez ryzyka w tym slice.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `READY` | PO | Zadanie utworzone po zamknięciu auth foundation |
+| 2026-11-25 | `IN_PROGRESS` | Hy4 Flash Free | Przydzielono implementację w izolowanym worktree |
 
 ## Decyzje
 

@@ -14,8 +14,8 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
   niezależnie zaakceptowanych.
 * **P2-002 — `DONE`**: token auth, revoke, middleware/context i bootstrap CLI
   są zintegrowane; finalny review, linter, testy i race przeszły.
-* **P2-003 — `READY`**: następny slice to DTO/router i minimalny kontrakt API
-  Linkdinga; nie został jeszcze przydzielony.
+* **P2-003 — `IN_PROGRESS`**: Hy4 Flash Free implementuje DTO/router i minimalny
+  kontrakt API Linkdinga w izolowanym worktree.
 
 ## Decyzje P2-002
 

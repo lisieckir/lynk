@@ -14,7 +14,7 @@ Właściciel tablicy: PO / koordynator projektu
 |---|---:|---|---|---|---|
 | [P1-001](tasks/P1-001-toolchain.md) | P1 | Bootstrap Go module i narzędzi | Big Pickle | `REVIEW` | Phase 0 |
 | [P1-002](tasks/P1-002-configuration-logging.md) | P1 | Konfiguracja i logowanie | — | `BACKLOG` | P1-001 |
-| [P1-003](tasks/P1-003-sqlite-foundation.md) | P0 | SQLite, pragmas i migracje | — | `BACKLOG` | P1-001 |
+| [P1-003](tasks/P1-003-sqlite-foundation.md) | P0 | SQLite, pragmas i migracje | Big Pickle | `IN_PROGRESS` | P1-001 review approved |
 | [P1-004](tasks/P1-004-health-endpoint.md) | P1 | Endpoint health | — | `BACKLOG` | P1-002, P1-003 |
 | [P1-005](tasks/P1-005-makefile.md) | P1 | Makefile jako interfejs projektu | — | `BACKLOG` | P1-001 |
 | [P1-006](tasks/P1-006-docker-compose.md) | P1 | Dockerfile i Compose | — | `BACKLOG` | P1-002, P1-003, P1-004, P1-005 |
@@ -34,3 +34,4 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | Przydzielono P1-001 agentowi Big Pickle | OpenCode |
 | 2026-11-25 | P1-001 przekazano do niezależnego code review | OpenCode |
 | 2026-11-25 | P1-001 review zaakceptowane warunkowo; oczekuje na walidację P1-003 | Flint 40B Free |
+| 2026-11-25 | Przydzielono P1-003 agentowi Big Pickle | OpenCode |

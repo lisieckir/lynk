@@ -2,9 +2,9 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BACKLOG` |
+| Status | `IN_PROGRESS` |
 | Priorytet | `P0` |
-| Owner | — |
+| Owner | Big Pickle |
 | Faza | Phase 1 |
 | Zależności | P1-001 |
 
@@ -43,6 +43,7 @@ bazie.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Oczekuje na P1-001 |
+| 2026-11-25 | `IN_PROGRESS` | Big Pickle | Rozpoczęto walidację drivera, SQLite foundation i migracji |
 
 ## Blockery
 

@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `REVIEW` |
 | Priorytet | `P0` |
 | Owner | Tidepool Alpha Free |
 | Faza | Phase 3 API |
@@ -44,8 +44,18 @@ browser-extension E2E.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `IN_PROGRESS` | Tidepool Alpha Free | Przydzielono implementację w izolowanym worktree |
+| 2026-11-25 | `REVIEW` | MiMo-V2.6-Flash Free | Commit `e617a1a`; search/pagination/mutations PASS, oczekuje niezależnego review |
 
 ## Ryzyka i decyzje
 
 Linkding używa request-derived `next`/`previous`; implementacja może zwracać
 `null` na końcach stron, ale musi zachować klucze i prawidłowy limit.
+
+## Zaparkowany rezultat
+
+Worktree: `/home/fox/.local/share/opencode/worktree/e89f91/p2-004-search-mutations`
+
+Commit `e617a1a6aaa9811d2d0fd0c04daff787e4d20412` jest zweryfikowany przez
+agenta: testy, race, vet, build, `make test-compat`, `make check` z pinned
+lintem oraz `go mod verify` przechodzą. Integracja i niezależny review są
+zaplanowane na następne wznowienie.

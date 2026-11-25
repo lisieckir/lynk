@@ -16,10 +16,17 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
   są zintegrowane; finalny review, linter, testy i race przeszły.
 * **P2-003 — `DONE`**: DTO/router, minimalny kontrakt API Linkdinga,
   compatibility tests i owner scoping zostały zintegrowane po review.
-* **P2-004 — `IN_PROGRESS`**: Tidepool Alpha Free implementuje search,
-  pagination i mutacje bookmarków.
+* **P2-004 — `REVIEW`**: zaparkowany commit `e617a1a6aaa9811d2d0fd0c04daff787e4d20412`
+  w worktree `/home/fox/.local/share/opencode/worktree/e89f91/p2-004-search-mutations`.
+  Jutro wykonać niezależny review, cherry-pick i pełną walidację.
 * **P2-005 — `BACKLOG`**: replay kontraktu rozszerzenia i parity pól po
   akceptacji P2-004.
+
+## Punkt wznowienia
+
+Nie integrować `e617a1a` bez niezależnego review. Po akceptacji zaktualizować
+P2-004 do `DONE`, uruchomić `make check`, `make test-compat`, race/build i
+dopiero wtedy przydzielić P2-005.
 
 ## Decyzje P2-002
 

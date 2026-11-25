@@ -2,9 +2,9 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BACKLOG` |
+| Status | `IN_PROGRESS` |
 | Priorytet | `P1` |
-| Owner | — |
+| Owner | GPT-6 Luna |
 | Faza | Phase 1 |
 | Zależności | P1-001, P1-002, P1-003, P1-004, P1-005, P1-006 |
 
@@ -34,6 +34,7 @@ restartach.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Zadanie końcowe Phase 1 |
+| 2026-11-25 | `IN_PROGRESS` | GPT-6 Luna | Rozpoczęto pełną walidację Phase 1 i pomiary |
 
 ## Blockery
 

@@ -18,7 +18,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P1-004](tasks/P1-004-health-endpoint.md) | P1 | Endpoint health | Big Pickle | `DONE` | P1-002, P1-003 |
 | [P1-005](tasks/P1-005-makefile.md) | P1 | Makefile jako interfejs projektu | Tidepool Alpha Free | `DONE` | P1-001 |
 | [P1-006](tasks/P1-006-docker-compose.md) | P1 | Dockerfile i Compose | Tidepool Alpha Free | `DONE` | P1-002, P1-003, P1-004, P1-005 |
-| [P1-007](tasks/P1-007-phase1-validation.md) | P1 | Walidacja i pomiary Phase 1 | — | `BACKLOG` | P1-001–P1-006 |
+| [P1-007](tasks/P1-007-phase1-validation.md) | P1 | Walidacja i pomiary Phase 1 | GPT-6 Luna | `IN_PROGRESS` | P1-001–P1-006 |
 
 ## Rejestr blockerów i decyzji
 
@@ -46,3 +46,4 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | Przydzielono P1-006 agentowi Tidepool Alpha Free | OpenCode |
 | 2026-11-25 | P1-006 przekazano do niezależnego review | OpenCode |
 | 2026-11-25 | P1-006 zaakceptowane; Alpine wybrane jako runtime | OpenAI reviewer |
+| 2026-11-25 | Przydzielono P1-007 agentowi GPT-6 Luna | OpenCode |

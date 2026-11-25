@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `REVIEW` |
 | Priorytet | `P1` |
 | Owner | Big Pickle |
 | Faza | Phase 1 |
@@ -39,10 +39,12 @@ niepoprawną.
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | — | Oczekuje na P1-001 |
 | 2026-11-25 | `IN_PROGRESS` | Big Pickle | Rozpoczęto konfigurację i logowanie |
+| 2026-11-25 | `REVIEW` | OpenCode | Implementacja gotowa do niezależnego review |
 
 ## Blockery
 
-Brak.
+Brak technicznych. Decyzja o tekstowym formacie logów w development wymaga
+akceptacji PO.
 
 ## Decision log
 

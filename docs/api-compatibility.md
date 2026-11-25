@@ -89,6 +89,20 @@ On create/update the client may send `url`, `title`, `description`, `notes`,
 strings. Read-only generated fields must not be accepted as authoritative
 input.
 
+### URL normalization and validation
+
+Verified against `bookmarks/utils.py::normalize_url` and
+`bookmarks/validators.py::BookmarkURLValidator` (which inherits Django's
+`URLValidator` defaults): normalization trims surrounding whitespace,
+lowercases the scheme and hostname, removes trailing slashes from the path,
+sorts query key/value pairs (retaining blank values and repeated keys), and
+re-encodes query pairs using percent encoding with `/` left safe. It preserves
+fragments, user information, path parameters and explicitly supplied ports,
+including default ports. The default validator accepts `http`, `https`, `ftp`
+and `ftps`; non-network schemes such as `javascript` and `data` are rejected.
+The current implementation follows these rules for bookmark create/update and
+uses the normalized URL within the owning user's duplicate lookup.
+
 ## Verified extension request flows
 
 ### Popup initialization

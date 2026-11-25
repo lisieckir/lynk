@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `PAUSED` |
+| Status | `DONE` |
 | Priorytet | `P1` |
 | Owner | GPT-6 Luna |
 | Faza | Phase 2 |
@@ -34,13 +34,13 @@ bez implementowania jeszcze Linkding API ani UI.
 
 ## Kryteria akceptacji
 
-- [ ] CRUD działa w testach na prawdziwym SQLite.
-- [ ] Duplicate create ma zachowanie zgodne z `docs/api-compatibility.md`.
-- [ ] Tag replacement jest atomowy i aktualizuje FTS5.
-- [ ] Archive/unarchive aktualizuje `date_modified`.
-- [ ] Operacje są ograniczone do właściciela.
-- [ ] Rollback nie zostawia częściowych relacji.
-- [ ] `go test -race ./...` przechodzi.
+- [x] CRUD działa w testach na prawdziwym SQLite.
+- [x] Duplicate create ma zachowanie zgodne z `docs/api-compatibility.md`.
+- [x] Tag replacement jest atomowy i aktualizuje FTS5.
+- [x] Archive/unarchive aktualizuje `date_modified`.
+- [x] Operacje są ograniczone do właściciela.
+- [x] Rollback nie zostawia częściowych relacji.
+- [x] `go test -race ./...` przechodzi.
 
 ## Postęp
 
@@ -49,6 +49,7 @@ bez implementowania jeszcze Linkding API ani UI.
 | 2026-11-25 | `IN_PROGRESS` | GPT-6 Luna | Rozpoczęto implementację domeny |
 | 2026-11-25 | `REVIEW` | OpenCode | Implementacja gotowa do niezależnego review |
 | 2026-11-25 | `PAUSED` | OpenCode | Wstrzymano przed poprawką portu `:0` i malformed percent escapes |
+| 2026-11-25 | `DONE` | GPT-6 Luna | Review końcowy zaakceptował domenę i testy |
 
 ## Blockery
 
@@ -58,4 +59,4 @@ Brak. P1-007 pozostaje niezależnym blockerem środowiskowym.
 
 | Data | Decyzja/pytanie | Status | Akceptacja PO |
 |---|---|---|---|
-| — | Model service/repository i normalizacja URL | Do weryfikacji z API compatibility | — |
+| 2026-11-25 | Model service/repository i normalizacja URL | Service/repository bez zbędnych interfejsów; normalizacja zweryfikowana względem upstream i pokryta testami | Review końcowy |

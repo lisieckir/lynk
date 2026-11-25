@@ -17,10 +17,10 @@ Phase 2.
 
 - [ ] `make check` przechodzi bez waivera lintera.
 - [x] `make test-race` przechodzi.
-- [ ] `make docker-release` przechodzi.
-- [ ] Healthcheck działa w Docker Compose.
+- [x] `make LINT_TOOL=none docker-release` przechodzi; bez-waiverowy `make check` nadal wymaga lintera.
+- [x] Healthcheck działa w Docker Compose.
 - [x] Migracje działają na świeżej i istniejącej bazie.
-- [~] Zmierzono rozmiar binarki i bazowe zużycie pamięci; rozmiar obrazu i pamięć kontenera oczekują na Docker.
+- [x] Zmierzono rozmiar binarki, obrazu i bazowe zużycie pamięci kontenera.
 - [x] Wyniki zapisano w dokumentacji projektu.
 - [ ] PO zaakceptował deliverable Phase 1.
 
@@ -36,8 +36,10 @@ restartach.
 | 2026-11-25 | `BACKLOG` | — | Zadanie końcowe Phase 1 |
 | 2026-11-25 | `IN_PROGRESS` | GPT-6 Luna | Rozpoczęto pełną walidację Phase 1 i pomiary |
 | 2026-11-25 | `BLOCKED` | GPT-6 Luna | Go/SQLite PASS; Docker/Compose i pełny lint zablokowane przez brak narzędzi |
+| 2026-11-25 | `IN_PROGRESS` | OpenCode | Docker/Compose dostępne; wznowiono walidację kontenera |
+| 2026-11-25 | `BLOCKED` | OpenCode | Build, health, restart, recreate i named-volume persistence PASS; brak `golangci-lint` blokuje bez-waiverowy sign-off |
 
 ## Blockery
 
-Brak narzędzi środowiskowych: Docker Engine, Docker Compose plugin i
-`golangci-lint`. Wymagane komendy są opisane w `docs/development.md`.
+Docker Engine i Compose zostały zwalidowane. Jedyny pozostały blocker to brak
+`golangci-lint`, przez co `make check` bez waivera nie może przejść.

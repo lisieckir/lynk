@@ -19,14 +19,14 @@ Właściciel tablicy: PO / koordynator projektu
 | [P1-005](tasks/P1-005-makefile.md) | P1 | Makefile jako interfejs projektu | Tidepool Alpha Free | `DONE` | P1-001 |
 | [P1-006](tasks/P1-006-docker-compose.md) | P1 | Dockerfile i Compose | Tidepool Alpha Free | `DONE` | P1-002, P1-003, P1-004, P1-005 |
 | [P1-007](tasks/P1-007-phase1-validation.md) | P1 | Walidacja i pomiary Phase 1 | GPT-6 Luna | `BLOCKED` | P1-001–P1-006 |
-| [P2-001](tasks/P2-001-bookmark-domain.md) | P1 | Domena zakładek, repository i service | GPT-6 Luna | `PAUSED` | P1-003 |
+| [P2-001](tasks/P2-001-bookmark-domain.md) | P1 | Domena zakładek, repository i service | GPT-6 Luna | `DONE` | P1-003 |
 
 ## Rejestr blockerów i decyzji
 
 | Data | Zadanie | Typ | Opis | Decyzja/owner |
 |---|---|---|---|---|
 | 2026-11-25 | P1-001 | Warunek akceptacji | Review zaakceptował implementację warunkowo; pin Go/SQLite wymaga potwierdzenia w P1-003 | Koordynator + PO |
-| 2026-11-25 | P1-007 | Środowisko | Brak Docker Engine/Compose oraz golangci-lint; wymagane do pełnego sign-offu Phase 1 | PO / host z Dockerem |
+| 2026-11-25 | P1-007 | Narzędzie wymagane | `golangci-lint` nie jest zainstalowany; Docker/Compose walidowane poprawnie | PO / CI |
 
 ## Historia zmian tablicy
 
@@ -53,3 +53,6 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | P2-001 uruchomione równolegle; P1-007 pozostaje blockerem release validation | OpenCode |
 | 2026-11-25 | P2-001 przekazano do niezależnego review | OpenCode |
 | 2026-11-25 | P2-001 wstrzymane przed ostatnią poprawką URL; komputer operatora będzie restartowany | OpenCode |
+| 2026-11-25 | P2-001 zaakceptowane po poprawkach URL i review końcowym | GPT-6 Luna |
+| 2026-11-25 | Docker/Compose dostępne; wznowiono P1-007 walidację kontenera | OpenCode |
+| 2026-11-25 | P1-007: build, health, restart, recreate i named-volume persistence PASS; lint nadal blokuje | OpenCode |

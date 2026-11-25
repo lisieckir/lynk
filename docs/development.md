@@ -77,7 +77,8 @@ Validated in the Linux AMD64 worktree with Go
 | `make check` with default linter | BLOCKED/FAIL; `golangci-lint` is not installed |
 | `make LINT_TOOL=none check` | PASS with lint explicitly disabled; this does not validate lint |
 | `make LINT_TOOL=none release` | PASS |
-| `make docker-release`, `docker compose config`, Compose live health/restart | BLOCKED; Docker is not installed |
+| `make LINT_TOOL=none docker-release` | PASS; image built successfully with lint explicitly disabled |
+| `docker compose config`, Compose live health/restart/recreate | PASS; healthcheck and `GET /health` returned `{"status":"ok"}` |
 | Dockerfile/Compose static assertions | PASS (multi-stage and digest-pinned images, non-root runtime, healthchecks, single service, persistent volume and restart policy) |
 
 `make init`, `deps`, `fmt`, `vet`, `test`, `test-race`, `test-cover`,
@@ -96,7 +97,8 @@ the installed `sqlite3` CLI's online `.backup` operation and passed
 | `bin/lynk` | 17,466,972 bytes |
 | static Linux AMD64 `dist/lynk-linux-amd64` | 17,383,407 bytes |
 | application RSS | 17,868 KiB (single `ps` sample immediately after `/health` became ready) |
-| Docker image size / container memory | Not measured; Docker unavailable |
+| Docker image size | 29,371,518 bytes |
+| Docker container memory | 5.328–5.375 MiB RSS in idle samples |
 
 The live smoke returned `{"status":"ok"}`. A fresh database applied migrations
 1 and 2; `PRAGMA journal_mode` returned `wal`, and `PRAGMA integrity_check`
@@ -106,7 +108,7 @@ database retained the row and also passed `integrity_check`. The repository's
 database tests additionally cover pooled-connection pragmas, migration
 idempotence/order/drift, rollback, foreign keys, FTS5 and backup behavior.
 
-### Host Docker follow-up
+### Host Docker validation
 
 On a host with Docker Engine and the Compose plugin installed, run from the
 repository root:
@@ -122,6 +124,9 @@ make health
 docker compose down
 ```
 
-This still leaves lint unvalidated; install/configure `golangci-lint` and run
-`make check` without `LINT_TOOL=none`. Do not count static Dockerfile/Compose
-inspection as a substitute for building and running the container.
+The live run also recreated the service after `docker compose down`: a marker
+and the 98,304-byte SQLite database remained in the named `lynk_lynk_data`
+volume, and the container returned healthy again. `make check` without the
+waiver remains unvalidated because `golangci-lint` is not installed. Static
+Dockerfile/Compose inspection was not used as a substitute for building and
+running the container.

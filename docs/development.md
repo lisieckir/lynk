@@ -63,3 +63,65 @@ readiness timeouts, typed-nil checkers, response redaction, canonical `/health`
 versus `/health/` routing, and cleanup paths that attempt database close even
 after shutdown or serve errors. API and Linkding compatibility tests are
 deferred to later tasks.
+
+## Phase 1 validation (2026-11-25)
+
+Validated in the Linux AMD64 worktree with Go
+`go1.27.4-X:nodwarf5 linux/amd64`:
+
+| Check | Result |
+|---|---|
+| `gofmt -l .` | PASS; no files reported |
+| `go build ./...`, `go test ./...`, `go test -race ./...`, `go vet ./...` | PASS |
+| `go mod tidy -diff`, `go mod verify` | PASS; all modules verified |
+| `make check` with default linter | BLOCKED/FAIL; `golangci-lint` is not installed |
+| `make LINT_TOOL=none check` | PASS with lint explicitly disabled; this does not validate lint |
+| `make LINT_TOOL=none release` | PASS |
+| `make docker-release`, `docker compose config`, Compose live health/restart | BLOCKED; Docker is not installed |
+| Dockerfile/Compose static assertions | PASS (multi-stage and digest-pinned images, non-root runtime, healthchecks, single service, persistent volume and restart policy) |
+
+`make init`, `deps`, `fmt`, `vet`, `test`, `test-race`, `test-cover`,
+`test-integration`, `test-compat`, `benchmark`, `build`, `build-linux`,
+`version`, `db-info` and `db-backup` were also invoked. Integration and
+compatibility targets reported no tests because their Phase 2/3 directories
+are not present. `db-migrate` is not a standalone command yet; migrations run
+automatically when the application opens the database. The backup target used
+the installed `sqlite3` CLI's online `.backup` operation and passed
+`PRAGMA integrity_check`.
+
+### Baseline measurements
+
+| Measurement | Result |
+|---|---:|
+| `bin/lynk` | 17,466,972 bytes |
+| static Linux AMD64 `dist/lynk-linux-amd64` | 17,383,407 bytes |
+| application RSS | 17,868 KiB (single `ps` sample immediately after `/health` became ready) |
+| Docker image size / container memory | Not measured; Docker unavailable |
+
+The live smoke returned `{"status":"ok"}`. A fresh database applied migrations
+1 and 2; `PRAGMA journal_mode` returned `wal`, and `PRAGMA integrity_check`
+returned `ok`. The app was stopped and reopened against the same database;
+a validation row remained present. A SQLite online backup of that reopened
+database retained the row and also passed `integrity_check`. The repository's
+database tests additionally cover pooled-connection pragmas, migration
+idempotence/order/drift, rollback, foreign keys, FTS5 and backup behavior.
+
+### Host Docker follow-up
+
+On a host with Docker Engine and the Compose plugin installed, run from the
+repository root:
+
+```sh
+make LINT_TOOL=none docker-release
+docker compose config
+make docker-up
+make health
+docker compose ps
+docker compose restart lynk
+make health
+docker compose down
+```
+
+This still leaves lint unvalidated; install/configure `golangci-lint` and run
+`make check` without `LINT_TOOL=none`. Do not count static Dockerfile/Compose
+inspection as a substitute for building and running the container.

@@ -21,7 +21,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P1-007](tasks/P1-007-phase1-validation.md) | P1 | Walidacja i pomiary Phase 1 | GPT-6 Luna | `DONE` | P1-001–P1-006 |
 | [P2-001](tasks/P2-001-bookmark-domain.md) | P1 | Domena zakładek, repository i service | GPT-6 Luna | `DONE` | P1-003 |
 | [P2-002](tasks/P2-002-token-auth-bootstrap.md) | P0 | Uwierzytelnianie tokenem i bootstrap CLI | Iceman Free | `DONE` | P1-003, P2-001 |
-| [P2-003](tasks/P2-003-linkding-api-foundation.md) | P0 | Fundament API Linkdinga | Hy4 Flash Free | `IN_PROGRESS` | P1-003, P2-001, P2-002 |
+| [P2-003](tasks/P2-003-linkding-api-foundation.md) | P0 | Fundament API Linkdinga | Hy4 Flash Free | `DONE` | P1-003, P2-001, P2-002 |
 
 ## Rejestr blockerów i decyzji
 
@@ -35,6 +35,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | P2-002 | Akceptacja | Finalny review APPROVE; `make check`, build, test i race PASS | PO |
 | 2026-11-25 | P2-003 | Decyzja PO | Start API od DTO/routera i minimalnego flow klienta; search/pagination rozbite osobno | PO |
 | 2026-11-25 | P2-003 | Przydzielenie | Hy4 Flash Free pracuje w izolowanym worktree | PO |
+| 2026-11-25 | P2-003 | Akceptacja | Finalny review APPROVE; API contract, compatibility tests, lint i race PASS | PO |
 
 ## Historia zmian tablicy
 
@@ -70,4 +71,5 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | P2-002 domknięte po naprawie 6 findings lintu i finalnym review | PO |
 | 2026-11-25 | Utworzono P2-003 fundament API Linkdinga | PO |
 | 2026-11-25 | Przydzielono P2-003 agentowi Hy4 Flash Free | PO |
+| 2026-11-25 | P2-003 zintegrowane po niezależnym review (`66ea32e`) | PO |
 | 2026-11-25 | P1-007 zaakceptowane po niezależnym review; lint, testy i Docker validation PASS | PO |

@@ -9,9 +9,9 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
 
 ## Zadania
 
-* **P1-007 — `BLOCKED`**: Docker/Compose i `golangci-lint v2.15.0` są
-  dostępne, ale `make check` wykrywa 14 realnych problemów (12 `errcheck`,
-  2 `staticcheck`). Testy i race przechodzą.
+* **P1-007 — `DONE`**: Docker/Compose, `golangci-lint v2.15.0`, testy, race,
+  vet i build przechodzą; wszystkie 14 zgłoszeń lintu zostało naprawionych i
+  niezależnie zaakceptowanych.
 * **P2-002 — `IN_PROGRESS`**: Iceman Free implementuje token auth i bootstrap
   CLI w worktree:
   `/home/fox/.local/share/opencode/worktree/e89f91/p2-002-auth`
@@ -27,5 +27,5 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
 ## Zasady wznowienia
 
 1. Nie integrować P2-002 bez niezależnego review i pełnej macierzy testów.
-2. Poprawki lintu prowadzić osobno od auth.
+2. P2-002 prowadzić osobno od kolejnych endpointów API.
 3. Po akceptacji P2-002 utworzyć zadanie na DTO/router/endpointy Linkdinga.

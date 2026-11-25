@@ -75,6 +75,7 @@ Validated in the Linux AMD64 worktree with Go
 | `go build ./...`, `go test ./...`, `go test -race ./...`, `go vet ./...` | PASS |
 | `go mod tidy -diff`, `go mod verify` | PASS; all modules verified |
 | `make check` with default linter | BLOCKED/FAIL; `golangci-lint` is not installed |
+| `make check` with `golangci-lint v2.15.0` | PASS; 0 issues after fixing 14 findings |
 | `make LINT_TOOL=none check` | PASS with lint explicitly disabled; this does not validate lint |
 | `make LINT_TOOL=none release` | PASS |
 | `make LINT_TOOL=none docker-release` | PASS; image built successfully with lint explicitly disabled |
@@ -127,6 +128,5 @@ docker compose down
 The live run also recreated the service after `docker compose down`: a marker
 and the 98,304-byte SQLite database remained in the named `lynk_lynk_data`
 volume, and the container returned healthy again. `make check` without the
-waiver remains unvalidated because `golangci-lint` is not installed. Static
-Dockerfile/Compose inspection was not used as a substitute for building and
-running the container.
+lint now passes without a waiver. Static Dockerfile/Compose inspection was not
+used as a substitute for building and running the container.

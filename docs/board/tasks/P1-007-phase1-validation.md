@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BLOCKED` |
+| Status | `DONE` |
 | Priorytet | `P1` |
 | Owner | GPT-6 Luna |
 | Faza | Phase 1 |
@@ -15,14 +15,14 @@ Phase 2.
 
 ## Kryteria akceptacji
 
-- [ ] `make check` przechodzi bez waivera lintera.
+- [x] `make check` przechodzi bez waivera lintera (`golangci-lint v2.15.0`, 0 issue'ów).
 - [x] `make test-race` przechodzi.
 - [x] `make LINT_TOOL=none docker-release` przechodzi; bez-waiverowy `make check` nadal wymaga lintera.
 - [x] Healthcheck działa w Docker Compose.
 - [x] Migracje działają na świeżej i istniejącej bazie.
 - [x] Zmierzono rozmiar binarki, obrazu i bazowe zużycie pamięci kontenera.
 - [x] Wyniki zapisano w dokumentacji projektu.
-- [ ] PO zaakceptował deliverable Phase 1.
+- [x] PO zaakceptował deliverable Phase 1.
 
 ## Weryfikacja
 
@@ -39,13 +39,12 @@ restartach.
 | 2026-11-25 | `IN_PROGRESS` | OpenCode | Docker/Compose dostępne; wznowiono walidację kontenera |
 | 2026-11-25 | `BLOCKED` | OpenCode | Build, health, restart, recreate i named-volume persistence PASS; brak `golangci-lint` blokuje bez-waiverowy sign-off |
 | 2026-11-25 | `BLOCKED` | Big Pickle | `golangci-lint v2.15.0` uruchomiony poza repozytorium; `make check` bez waivera FAIL na 14 issue'ach lintu, `make test` i `make test-race` PASS |
+| 2026-11-25 | `DONE` | PO | Wszystkie 14 issue'ów naprawione; niezależny review APPROVE; `make check`, race i Docker validation PASS |
 
 ## Blockery
 
-Docker Engine, Compose i `golangci-lint` są dostępne; brak narzędzi nie jest już
-blockerem. Pozostały blocker to 14 rzeczywistych zgłoszeń lintu z domyślnego
-zestawu reguł (12 `errcheck`, 2 `staticcheck`), przez co `make check` bez
-waivera nie przechodzi.
+Brak blockerów. Docker/Compose, `golangci-lint`, testy, race, vet i build
+zostały zwalidowane.
 
 Zweryfikowane 2026-11-25 przez Big Pickle:
 

@@ -1,9 +1,10 @@
 // Package config loads and validates Lynk's environment configuration.
 //
 // Configuration is resolved once at startup. Every value has a documented
-// default from SPEC.md and invalid values fail with an error that names the
-// environment variable. Paths are validated as filesystem paths only:
-// creating directories, files and database schema belongs to later tasks.
+// default from SPEC.md or the Phase 1 architecture notes, and invalid values
+// fail with an error that names the environment variable. Paths are validated
+// as filesystem paths only: creating directories, files and database schema
+// belongs to later tasks.
 package config
 
 import (
@@ -16,7 +17,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
+
+// defaultHealthTimeout bounds a readiness ping. It matches the safe default in
+// internal/health; configuration stays independent of the HTTP packages.
+const defaultHealthTimeout = 2 * time.Second
 
 // Environment is the deployment mode selected by LYNK_ENV.
 type Environment string
@@ -44,23 +50,25 @@ type LookupFunc func(string) (string, bool)
 // Config is the fully resolved, validated configuration. Construct it through
 // Default or Load, then call Validate if values were changed programmatically.
 type Config struct {
-	Env          Environment
-	HTTPAddr     string
-	DataDir      string
-	DatabasePath string
-	LogLevel     slog.Level
-	BaseURL      string
+	Env           Environment
+	HTTPAddr      string
+	DataDir       string
+	DatabasePath  string
+	LogLevel      slog.Level
+	BaseURL       string
+	HealthTimeout time.Duration
 }
 
 // Default returns the values documented in SPEC.md section 8.
 func Default() Config {
 	return Config{
-		Env:          EnvProduction,
-		HTTPAddr:     ":9090",
-		DataDir:      "/data",
-		DatabasePath: "/data/lynk.db",
-		LogLevel:     slog.LevelInfo,
-		BaseURL:      "https://lynk.example.com",
+		Env:           EnvProduction,
+		HTTPAddr:      ":9090",
+		DataDir:       "/data",
+		DatabasePath:  "/data/lynk.db",
+		LogLevel:      slog.LevelInfo,
+		BaseURL:       "https://lynk.example.com",
+		HealthTimeout: defaultHealthTimeout,
 	}
 }
 
@@ -127,6 +135,14 @@ func LoadFrom(lookup LookupFunc) (Config, error) {
 			cfg.BaseURL = baseURL
 		}
 	}
+	if raw, ok := lookupValue(lookup, "LYNK_HEALTH_TIMEOUT"); ok {
+		timeout, err := parseHealthTimeout(raw)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("LYNK_HEALTH_TIMEOUT: %w", err))
+		} else {
+			cfg.HealthTimeout = timeout
+		}
+	}
 
 	// Validate is intentionally called even after successful parsing: it is
 	// the single source of truth for invariants, including programmatic use.
@@ -160,6 +176,9 @@ func (c Config) Validate() error {
 	}
 	if _, err := parseBaseURL(c.BaseURL); err != nil {
 		errs = append(errs, fmt.Errorf("LYNK_BASE_URL: %w", err))
+	}
+	if err := validateHealthTimeout(c.HealthTimeout); err != nil {
+		errs = append(errs, fmt.Errorf("LYNK_HEALTH_TIMEOUT: %w", err))
 	}
 	return errors.Join(errs...)
 }
@@ -293,6 +312,25 @@ func validateLevel(level slog.Level) error {
 	default:
 		return fmt.Errorf("unsupported slog level %d; use debug, info, warn or error", level)
 	}
+}
+
+// parseHealthTimeout accepts Go duration strings such as "2s" or "500ms".
+func parseHealthTimeout(raw string) (time.Duration, error) {
+	timeout, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("invalid duration %q: %w", raw, err)
+	}
+	if err := validateHealthTimeout(timeout); err != nil {
+		return 0, err
+	}
+	return timeout, nil
+}
+
+func validateHealthTimeout(timeout time.Duration) error {
+	if timeout <= 0 {
+		return errors.New("health timeout must be positive")
+	}
+	return nil
 }
 
 // parseBaseURL accepts only an absolute HTTP(S) URL without credentials,

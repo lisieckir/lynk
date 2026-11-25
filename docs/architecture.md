@@ -1,6 +1,6 @@
 # Lynk technical architecture
 
-Status: Phase 1 foundation in progress. P1-001 and P1-003 are implemented;
+Status: Phase 1 foundation in progress. P1-001 through P1-004 are implemented;
 Go/SQLite pins are validated on Linux AMD64.
 
 ## Goals and constraints
@@ -20,6 +20,8 @@ internal/
   tag/
   user/
   database/         SQLite opening, pragmas and migrations
+  server/           minimal net/http server and graceful lifecycle
+  health/           unauthenticated readiness handler
   search/           FTS5 query construction
   metadata/         bounded SSRF-safe fetcher
   worker/           bounded asynchronous jobs
@@ -50,6 +52,18 @@ Use `net/http`, explicit routes and request contexts. Configure read-header,
 read, write and idle timeouts. Serve `/health` without API authentication and
 API routes with token authentication. Preserve trailing slash routes as
 canonical.
+
+P1-004 registers `GET /health` on a standard `http.ServeMux` through
+`internal/server`. The handler in `internal/health` pings the database under a
+bounded context and returns only fixed 200/503 JSON bodies; checker errors,
+paths and credentials are never serialized. The readiness timeout is
+`LYNK_HEALTH_TIMEOUT` in typed configuration (positive Go duration, default
+`2s`) and flows through `server.Config.ReadinessTimeout`. Only the exact path
+`/health` is canonical: `/health/` is intentionally unregistered and returns a
+deterministic 404 without redirect. `cmd/lynk` loads configuration, opens and
+migrates the database, then runs the server until context cancellation,
+draining requests before closing the database during graceful shutdown. Shutdown
+errors and database-close errors are joined and reported together.
 
 ### Authentication
 

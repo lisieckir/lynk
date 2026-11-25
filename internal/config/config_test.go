@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
+	"time"
 )
 
 func lookupFrom(values map[string]string) LookupFunc {
@@ -15,12 +16,13 @@ func lookupFrom(values map[string]string) LookupFunc {
 
 func TestDefaultMatchesSpec(t *testing.T) {
 	want := Config{
-		Env:          EnvProduction,
-		HTTPAddr:     ":9090",
-		DataDir:      "/data",
-		DatabasePath: "/data/lynk.db",
-		LogLevel:     slog.LevelInfo,
-		BaseURL:      "https://lynk.example.com",
+		Env:           EnvProduction,
+		HTTPAddr:      ":9090",
+		DataDir:       "/data",
+		DatabasePath:  "/data/lynk.db",
+		LogLevel:      slog.LevelInfo,
+		BaseURL:       "https://lynk.example.com",
+		HealthTimeout: 2 * time.Second,
 	}
 	if got := Default(); got != want {
 		t.Fatalf("Default() = %+v, want %+v", got, want)
@@ -36,6 +38,7 @@ func TestLoadFromDefaults(t *testing.T) {
 		"blank": {
 			"LYNK_ENV": "", "LYNK_HTTP_ADDR": " ", "LYNK_DATA_DIR": "",
 			"LYNK_DATABASE_PATH": "", "LYNK_LOG_LEVEL": "\t", "LYNK_BASE_URL": "",
+			"LYNK_HEALTH_TIMEOUT": "",
 		},
 	}
 	for name, values := range tests {
@@ -127,6 +130,11 @@ func TestLoadFromValidValues(t *testing.T) {
 				t.Errorf("BaseURL = %q", c.BaseURL)
 			}
 		}},
+		{"health timeout", map[string]string{"LYNK_HEALTH_TIMEOUT": "1500ms"}, func(t *testing.T, c Config) {
+			if c.HealthTimeout != 1500*time.Millisecond {
+				t.Errorf("HealthTimeout = %v", c.HealthTimeout)
+			}
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -175,6 +183,9 @@ func TestLoadFromInvalidValues(t *testing.T) {
 		{"base url with query", map[string]string{"LYNK_BASE_URL": "https://host.example?token=abc"}, "LYNK_BASE_URL"},
 		{"base url with fragment", map[string]string{"LYNK_BASE_URL": "https://host.example/#part"}, "LYNK_BASE_URL"},
 		{"base url with space", map[string]string{"LYNK_BASE_URL": "https://host ex/ample"}, "LYNK_BASE_URL"},
+		{"health timeout malformed", map[string]string{"LYNK_HEALTH_TIMEOUT": "soon"}, "LYNK_HEALTH_TIMEOUT"},
+		{"health timeout zero", map[string]string{"LYNK_HEALTH_TIMEOUT": "0s"}, "LYNK_HEALTH_TIMEOUT"},
+		{"health timeout negative", map[string]string{"LYNK_HEALTH_TIMEOUT": "-1s"}, "LYNK_HEALTH_TIMEOUT"},
 		{"multiple invalid values", map[string]string{"LYNK_ENV": "staging", "LYNK_HTTP_ADDR": "localhost"}, "LYNK_ENV"},
 	}
 	for _, tt := range tests {
@@ -195,14 +206,15 @@ func TestLoadFromInvalidValues(t *testing.T) {
 
 func TestLoadFromReportsEveryInvalidValue(t *testing.T) {
 	_, err := LoadFrom(lookupFrom(map[string]string{
-		"LYNK_ENV":       "staging",
-		"LYNK_HTTP_ADDR": "localhost",
-		"LYNK_LOG_LEVEL": "trace",
+		"LYNK_ENV":            "staging",
+		"LYNK_HTTP_ADDR":      "localhost",
+		"LYNK_LOG_LEVEL":      "trace",
+		"LYNK_HEALTH_TIMEOUT": "0s",
 	}))
 	if err == nil {
-		t.Fatal("LoadFrom succeeded with three invalid values")
+		t.Fatal("LoadFrom succeeded with four invalid values")
 	}
-	for _, name := range []string{"LYNK_ENV", "LYNK_HTTP_ADDR", "LYNK_LOG_LEVEL"} {
+	for _, name := range []string{"LYNK_ENV", "LYNK_HTTP_ADDR", "LYNK_LOG_LEVEL", "LYNK_HEALTH_TIMEOUT"} {
 		if !strings.Contains(err.Error(), name) {
 			t.Errorf("error %q does not mention %s", err, name)
 		}
@@ -220,6 +232,12 @@ func TestValidateRejectsProgrammaticChanges(t *testing.T) {
 	cfg.HTTPAddr = "localhost"
 	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "LYNK_HTTP_ADDR") {
 		t.Fatalf("Validate accepted invalid address: %v", err)
+	}
+
+	cfg = Default()
+	cfg.HealthTimeout = 0
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "LYNK_HEALTH_TIMEOUT") {
+		t.Fatalf("Validate accepted zero health timeout: %v", err)
 	}
 }
 

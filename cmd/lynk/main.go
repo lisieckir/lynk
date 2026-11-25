@@ -1,8 +1,8 @@
 // Command lynk is the application entrypoint.
 //
-// Phase 1 foundation: typed configuration, structured logging and graceful
-// signal handling are wired here. HTTP, health, API, UI and database startup
-// are added by later Phase 1 tasks.
+// Phase 1 foundation: typed configuration, structured logging, SQLite
+// migrations, the unauthenticated /health endpoint and graceful signal
+// handling are wired here. API, UI and container packaging are later tasks.
 package main
 
 import (
@@ -12,7 +12,9 @@ import (
 	"os"
 
 	"github.com/lisieckir/lynk/internal/config"
+	"github.com/lisieckir/lynk/internal/database"
 	"github.com/lisieckir/lynk/internal/logging"
+	"github.com/lisieckir/lynk/internal/server"
 	"github.com/lisieckir/lynk/internal/shutdown"
 )
 
@@ -25,8 +27,8 @@ func main() {
 	}
 }
 
-// run is separated from main so configuration and shutdown behavior can be
-// tested without installing process signal handlers.
+// run is separated from main so configuration, startup and shutdown behavior
+// can be tested without installing process signal handlers.
 func run(ctx context.Context, lookup config.LookupFunc, out io.Writer) error {
 	cfg, err := config.LoadFrom(lookup)
 	if err != nil {
@@ -41,8 +43,23 @@ func run(ctx context.Context, lookup config.LookupFunc, out io.Writer) error {
 		"log_level", cfg.LogLevel.String(),
 	)
 
-	return shutdown.Wait(ctx, shutdown.DefaultTimeout, func(context.Context) error {
-		logger.Info("shutdown complete")
-		return nil
-	})
+	// An already-cancelled context means shutdown was requested before startup
+	// could finish. Avoid touching the database or binding a port; preserve the
+	// original entrypoint contract of a clean, logged shutdown.
+	if ctx.Err() != nil {
+		return shutdown.Wait(ctx, shutdown.DefaultTimeout, func(context.Context) error {
+			logger.Info("shutdown complete")
+			return nil
+		})
+	}
+
+	db, err := database.Open(ctx, database.Config{Path: cfg.DatabasePath})
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	logger.Info("database ready")
+
+	serverCfg := server.DefaultConfig(cfg.HTTPAddr)
+	serverCfg.ReadinessTimeout = cfg.HealthTimeout
+	return server.Run(ctx, serverCfg, db, logger)
 }

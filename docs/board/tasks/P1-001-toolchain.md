@@ -2,9 +2,9 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `READY` |
+| Status | `IN_PROGRESS` |
 | Priorytet | `P1` |
-| Owner | — |
+| Owner | Big Pickle |
 | Faza | Phase 1 |
 | Zależności | Phase 0 zaakceptowana |
 
@@ -48,6 +48,7 @@ funkcji aplikacyjnych.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `READY` | — | Zadanie przygotowane |
+| 2026-11-25 | `IN_PROGRESS` | Big Pickle | Agent rozpoczął pracę w izolowanym worktree |
 
 ## Blockery
 

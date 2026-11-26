@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `BLOCKED` |
 | Priorytet | `P0` |
 | Owner | Iceman Free |
 | Faza | Phase 5 |
@@ -48,3 +48,9 @@ SingleFile/assets/bundles i nowy frontend build pipeline.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-26 | `IN_PROGRESS` | Iceman Free | Przydzielono implementację web interface MVP |
+| 2026-11-26 | `BLOCKED` | Big Pickle | Security review REQUEST CHANGES: lint blocker, login DoS/rate limit, logout CSRF, test gaps and duplicate-create data loss |
+
+## Blockery
+
+Nie integrować `80c03e4` przed naprawą findings, pełną macierzą z pinned
+linterem i ponownym niezależnym security review.

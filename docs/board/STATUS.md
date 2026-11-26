@@ -27,7 +27,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-006](tasks/P2-006-metadata-ssrf.md) | P0 | Asynchroniczne metadata extraction i SSRF protection | Iceman Free | `DONE` | P2-005 |
 | [P2-007](tasks/P2-007-release-e2e.md) | P0 | Release E2E i deployment validation | Big Pickle | `DONE` | P2-006 |
 | [P2-008](tasks/P2-008-cors-options.md) | P1 | CORS i OPTIONS dla API | Hy4 Flash Free | `DONE` | P2-007 |
-| [P2-009](tasks/P2-009-web-interface.md) | P0 | Web interface MVP | Iceman Free | `IN_PROGRESS` | P2-008 |
+| [P2-009](tasks/P2-009-web-interface.md) | P0 | Web interface MVP | Iceman Free | `BLOCKED` | P2-008 |
 
 ## Rejestr blockerów i decyzji
 
@@ -62,6 +62,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-008 | Security review | `6f0fc95` APPROVE, severity none; CORS/config/auth matrix PASS | Big Pickle |
 | 2026-11-26 | P2-008 | Akceptacja | Zintegrowane `7ac47c5`; pełna walidacja i PO_REVIEW PASS | PO |
 | 2026-11-26 | P2-009 | Decyzja PO | Web interface jest brakującym wymaganiem Definition of Done; security/session scope obowiązkowy | PO |
+| 2026-11-26 | P2-009 | Request changes | Security review wykrył lint blocker, brak rate limitu/bounded sessions, logout CSRF gap, braki testów i duplicate-create overwrite | Big Pickle |
 
 ## Historia zmian tablicy
 

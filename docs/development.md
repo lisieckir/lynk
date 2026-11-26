@@ -491,8 +491,8 @@ Representative Linux AMD64 results from `bench-summary.txt` (`-8` = 8 CPUs):
 | `BenchmarkParseHTML/body_cap_2048KiB` | 5,730,547 | 2,824 | 44 |
 
 `BenchmarkBookmarkHeapSnapshot` additionally reports `3.528 heap-MiB` and
-`21.96 sys-MiB` after a 2,000-bookmark paging workload. The parse/export
-benchmarks use `b.SetBytes`, so their logs also show throughput (about
+`21.96 sys-MiB` after a 2,000-bookmark paging workload. The parse and metadata
+body benchmarks use `b.SetBytes`, so their logs also show throughput (about
 30 MB/s for a 10,000-record Netscape document and 366 MB/s for the 2 MiB
 metadata body). The CPU profile for the bookmark suite is dominated by
 `modernc.org/sqlite/lib._sqlite3VdbeExec` (38% cumulative), with the Netscape
@@ -655,6 +655,6 @@ PO_REVIEW are still pending; this report does not self-approve them.
   contract; P2-011 re-ran those suites through `make test-integration`.
 * Normal RSS is below the SPEC band's lower bound; it is reported as under
   budget rather than silently reshaped into an exact match.
-* The `/tmp/opencode/p2-011` logs and pprof files may be removed by host
-  cleanup; the checked-in benchmarks and scripts in that directory make the
-  measurements reproducible from the repository root.
+* The `/tmp/opencode/p2-011` logs, scripts and pprof files may be removed by
+  host cleanup. The benchmark code is checked in; the documented commands and
+  matrix steps reproduce the measurements from the repository root.

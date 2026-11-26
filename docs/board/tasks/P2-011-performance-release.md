@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `REVIEW` |
+| Status | `DONE` |
 | Priorytet | `P0` |
 | Owner | Big Pickle |
 | Faza | Phase 8 |
@@ -32,14 +32,14 @@ features and unsupported architectures.
 
 ## Kryteria akceptacji
 
-- [ ] Benchmarks and profiles are checked in or reproducibly documented.
-- [ ] Resource results are compared with SPEC targets (idle 10–20 MB,
+- [x] Benchmarks and profiles are checked in or reproducibly documented.
+- [x] Resource results are compared with SPEC targets (idle 10–20 MB,
   normal 20–40 MB, metadata below 64 MB) with methodology.
-- [ ] Docker image is non-root, minimal and health/persistence/restart tested.
-- [ ] Full release matrix and compatibility regression PASS.
-- [ ] Security review summary has no unresolved high/medium blockers.
-- [ ] Release documentation and rollback/backup instructions are current.
-- [ ] Independent release review APPROVE and PO_REVIEW.
+- [x] Docker image is non-root, minimal and health/persistence/restart tested.
+- [x] Full release matrix and compatibility regression PASS.
+- [x] Security review summary has no unresolved high/medium blockers.
+- [x] Release documentation and rollback/backup instructions are current.
+- [x] Independent release review APPROVE and PO_REVIEW.
 
 ## Postęp
 
@@ -47,3 +47,4 @@ features and unsupported architectures.
 |---|---|---|---|
 | 2026-11-26 | `IN_PROGRESS` | Big Pickle | Przydzielono finalny Phase 8 release gate |
 | 2026-11-26 | `REVIEW` | Big Pickle | `08e3390` benchmark/resource/Docker matrix PASS; independent release review w toku |
+| 2026-11-26 | `DONE` | PO | Release review `APPROVE`, full matrix and resource evidence PASS; PO_REVIEW PASS |

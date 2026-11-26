@@ -35,11 +35,13 @@ zostało zintegrowane po niezależnym security review.
   niezależnym security `APPROVE`.
 * **P2-010 — `DONE`**: Netscape import/export, bounded parser, atomic CLI
   safety i security fixes zostały zintegrowane po niezależnym `APPROVE`.
-* **P2-011 — `REVIEW`**: `08e3390` ma benchmarki, profile, resource
-  measurements i Docker/release matrix PASS; niezależny release review w toku.
+* **P2-011 — `DONE`**: benchmarki, profile, resource measurements,
+  FTS optimization i Docker/release matrix zostały zaakceptowane po
+  niezależnym release `APPROVE`.
 
-P2-010 jest zamknięte. P2-011 jest finalnym gate'em Phase 8; backup/restore
-jest już dostępne przez SQLite-aware helper i Makefile.
+P2-011 jest zamknięte. MVP spełnia obecne Definition of Done; backup/restore
+jest dostępne przez SQLite-aware helper i Makefile. Pozostają nieblokujące
+operacyjne follow-upy: długi soak test i ewentualne formalne pprof automation.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

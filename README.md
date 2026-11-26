@@ -1,15 +1,15 @@
 # lynk
 
 Lynk is a lightweight, self-hosted bookmark manager: a single Go process with
-SQLite, server-rendered HTML and a Linkding-compatible API. Phase 1 is building
-the project foundation; application features are intentionally not implemented
-yet.
+SQLite, server-rendered HTML and a Linkding-compatible API. The MVP includes
+bookmark CRUD/search/tags, the official Linkding extension contract, metadata
+fetching, a web UI, Netscape import/export and Docker deployment.
 
 ## Development
 
 The module path is `github.com/lisieckir/lynk`. Go `1.27.4` and
-`modernc.org/sqlite` `v1.63.0` are pinned **provisionally**, pending the P1-003
-SQLite validation.
+`modernc.org/sqlite` `v1.63.0` are validated pins for the current Linux AMD64
+release target.
 
 ```sh
 go build ./...

@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `BLOCKED` |
 | Priorytet | `P0` |
 | Owner | Iceman Free |
 | Faza | Phase 6 capability pulled forward for MVP compatibility |
@@ -51,9 +51,15 @@ metadata parity z zewnętrznymi serwisami.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-26 | `IN_PROGRESS` | Iceman Free | Przydzielono security-critical implementację |
+| 2026-11-26 | `BLOCKED` | Big Pickle | Security review REQUEST CHANGES: high-severity parser, SSRF range i worker shutdown findings; linter 4 issues |
 
 ## Decyzje PO
 
 * Prawdziwe metadata fetching jest wymagane przed release’em MVP.
 * Testy używają wyłącznie lokalnych `httptest.Server` i kontrolowanych resolverów.
 * Brak nowych produkcyjnych zależności bez osobnej decyzji PO.
+
+## Blockery
+
+Nie integrować `d516fac` przed naprawą high-severity security findings,
+pełnym test matrix i ponownym niezależnym security review.

@@ -16,17 +16,15 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
   są zintegrowane; finalny review, linter, testy i race przeszły.
 * **P2-003 — `DONE`**: DTO/router, minimalny kontrakt API Linkdinga,
   compatibility tests i owner scoping zostały zintegrowane po review.
-* **P2-004 — `REVIEW`**: zaparkowany commit `e617a1a6aaa9811d2d0fd0c04daff787e4d20412`
-  w worktree `/home/fox/.local/share/opencode/worktree/e89f91/p2-004-search-mutations`.
-  Jutro wykonać niezależny review, cherry-pick i pełną walidację.
+* **P2-004 — `DONE`**: search, pagination, archive/update mutations, overflow
+  guard i dokumentacja zostały zintegrowane po niezależnym APPROVE.
 * **P2-005 — `BACKLOG`**: replay kontraktu rozszerzenia i parity pól po
   akceptacji P2-004.
 
 ## Punkt wznowienia
 
-Nie integrować `e617a1a` bez niezależnego review. Po akceptacji zaktualizować
-P2-004 do `DONE`, uruchomić `make check`, `make test-compat`, race/build i
-dopiero wtedy przydzielić P2-005.
+P2-004 jest zamknięte. Następnym krokiem może być przydzielenie P2-005
+extension contract replay po aktualizacji boardu.
 
 ## Decyzje P2-002
 

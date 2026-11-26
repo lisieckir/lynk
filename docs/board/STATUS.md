@@ -23,7 +23,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-002](tasks/P2-002-token-auth-bootstrap.md) | P0 | Uwierzytelnianie tokenem i bootstrap CLI | Iceman Free | `DONE` | P1-003, P2-001 |
 | [P2-003](tasks/P2-003-linkding-api-foundation.md) | P0 | Fundament API Linkdinga | Hy4 Flash Free | `DONE` | P1-003, P2-001, P2-002 |
 | [P2-004](tasks/P2-004-linkding-search-mutations.md) | P0 | Search, pagination i mutacje bookmarków Linkdinga | MiMo-V2.6-Flash Free | `DONE` | P2-003 |
-| [P2-005](tasks/P2-005-extension-contract-replay.md) | P0 | Extension contract replay i parity pól | — | `BACKLOG` | P2-004 |
+| [P2-005](tasks/P2-005-extension-contract-replay.md) | P0 | Extension contract replay i parity pól | Nemotron Lightning Free | `IN_PROGRESS` | P2-004 |
 
 ## Rejestr blockerów i decyzji
 
@@ -41,6 +41,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | P2-004 | Review pending | Commit `e617a1a` gotowy; integracja zaparkowana do następnego dnia | PO |
 | 2026-11-26 | P2-004 | Akceptacja | Re-review APPROVE; search, pagination, mutations, overflow i docs PASS | PO |
 | 2026-11-25 | P2-005 | Decyzja PO | Replay/parity przed metadata i realnym E2E; SingleFile odroczone | PO |
+| 2026-11-26 | P2-005 | Przydzielenie | Nemotron Lightning Free pracuje po zamknięciu P2-004 | PO |
 | 2026-11-25 | P2-003 | Akceptacja | Finalny review APPROVE; API contract, compatibility tests, lint i race PASS | PO |
 
 ## Historia zmian tablicy
@@ -82,4 +83,5 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-25 | P2-004 implementacja ukończona przez MiMo; zaparkowano przed review (`e617a1a`) | PO |
 | 2026-11-26 | P2-004 zintegrowane (`a9b38c8`, `a7d43e4`) po niezależnym APPROVE | PO |
 | 2026-11-25 | Utworzono P2-005 jako następny gate kompatybilności rozszerzenia | PO |
+| 2026-11-26 | Przydzielono P2-005 agentowi Nemotron Lightning Free | PO |
 | 2026-11-25 | P1-007 zaakceptowane po niezależnym review; lint, testy i Docker validation PASS | PO |

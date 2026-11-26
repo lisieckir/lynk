@@ -2,9 +2,9 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BACKLOG` |
+| Status | `IN_PROGRESS` |
 | Priorytet | `P0` |
-| Owner | — |
+| Owner | Nemotron Lightning Free |
 | Faza | Phase 3→4 bridge |
 | Zależności | P2-004 |
 
@@ -45,3 +45,4 @@ parity pól zapisywalnych i paginacji tagów przed prawdziwym E2E.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-25 | `BACKLOG` | PO | Przygotowane po analizie pozostałych luk API |
+| 2026-11-26 | `IN_PROGRESS` | Nemotron Lightning Free | Przydzielono implementację po zamknięciu P2-004 |

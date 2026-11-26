@@ -34,7 +34,8 @@ P2-008 jest zamknięte. Następny brak Definition of Done to web interface;
 potem import/export i backup/restore.
 * **P2-009 — `BLOCKED`**: security review wykrył lint blocker, login
   rate-limit/session-capacity gap, logout CSRF, braki testów i duplicate-create
-  overwrite; poprawki są zlecone w worktree.
+  overwrite; follow-up nadal wymaga exact pinned check, konfiguracji limitów i
+  pełnego test matrix.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

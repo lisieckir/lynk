@@ -63,6 +63,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-008 | Akceptacja | Zintegrowane `7ac47c5`; pełna walidacja i PO_REVIEW PASS | PO |
 | 2026-11-26 | P2-009 | Decyzja PO | Web interface jest brakującym wymaganiem Definition of Done; security/session scope obowiązkowy | PO |
 | 2026-11-26 | P2-009 | Request changes | Security review wykrył lint blocker, brak rate limitu/bounded sessions, logout CSRF gap, braki testów i duplicate-create overwrite | Big Pickle |
+| 2026-11-26 | P2-009 | Request changes | Follow-up `a62e0b5` nadal bez exact pinned check, konfigurowalnych limitów i pełnego test matrix | PO |
 
 ## Historia zmian tablicy
 

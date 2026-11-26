@@ -26,7 +26,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-005](tasks/P2-005-extension-contract-replay.md) | P0 | Extension contract replay i parity pól | Nemotron Lightning Free | `DONE` | P2-004 |
 | [P2-006](tasks/P2-006-metadata-ssrf.md) | P0 | Asynchroniczne metadata extraction i SSRF protection | Iceman Free | `DONE` | P2-005 |
 | [P2-007](tasks/P2-007-release-e2e.md) | P0 | Release E2E i deployment validation | Big Pickle | `DONE` | P2-006 |
-| [P2-008](tasks/P2-008-cors-options.md) | P1 | CORS i OPTIONS dla API | Hy4 Flash Free | `IN_PROGRESS` | P2-007 |
+| [P2-008](tasks/P2-008-cors-options.md) | P1 | CORS i OPTIONS dla API | Hy4 Flash Free | `DONE` | P2-007 |
 
 ## Rejestr blockerów i decyzji
 
@@ -58,6 +58,8 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-007 | Akceptacja PO | Firefox/XPI, Docker, proxy auth i persistence PASS; CORS gap przeniesiony do P2-008 | PO |
 | 2026-11-25 | P2-003 | Akceptacja | Finalny review APPROVE; API contract, compatibility tests, lint i race PASS | PO |
 | 2026-11-26 | P2-007 zaakceptowane; utworzono P2-008 hardening task | PO |
+| 2026-11-26 | P2-008 | Security review | `6f0fc95` APPROVE, severity none; CORS/config/auth matrix PASS | Big Pickle |
+| 2026-11-26 | P2-008 | Akceptacja | Zintegrowane `7ac47c5`; pełna walidacja i PO_REVIEW PASS | PO |
 
 ## Historia zmian tablicy
 

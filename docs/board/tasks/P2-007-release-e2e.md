@@ -169,7 +169,7 @@ Archive/unarchive, PUT, PATCH, asset i bundle nie były wywołane, ponieważ
 oficjalne rozszerzenie 1.15.1 ich nie używa; pozostają poza E2E gate'em zgodnie
 z `api-compatibility.md`.
 
-## Proxy, CORS i gap release'owy
+## Proxy, CORS i gap release'owy (historyczny; zamknięty przez P2-008)
 
 Logging proxy na `127.0.0.1:19091` poprawnie przekazał `Authorization: Token
 <redacted>` do Lynk i zwrócił `200`; pagination `next` pozostała względna
@@ -186,13 +186,9 @@ CORS/OPTIONS nie przeszło:
 * `GET /api/user/profile/` z `Origin: https://example.com` i tokenem →
   `200`, ale bez żadnego nagłówka `Access-Control-*`.
 
-W źródle nie ma obsługi `OPTIONS` ani nagłówków `Access-Control-*`; nie ma
-także obsługi zaufanych nagłówków proxy typu `X-Forwarded-*`. Oficjalne
-rozszerzenie działa, bo ma host permissions i wysyła token bezpośrednio, ale
-webowy klient z innego originu zostanie zablokowany przez CORS. **Nie zmieniamy
-kodu produkcyjnego poza zakresem zadania.** Wymagana jest decyzja PO:
-przyjąć jako znany limit release'u i otworzyć osobny task CORS/OPTIONS, albo
-zlecić rozwiązanie przed sign-offem.
+P2-008 dodał fail-closed, opt-in policy. Bez skonfigurowanych originów API
+pozostaje bez nagłówków CORS; dla jawnie dozwolonych originów preflight jest
+obsługiwany bez tokenu wyłącznie dla skonfigurowanych metod i nagłówków.
 
 ## Metadane worker — zastrzeżenie
 
@@ -205,10 +201,9 @@ jest potwierdzony obserwacyjnie, nie jako formalna asercja.
 
 ## Decyzja PO / next action
 
-Release gate **nie jest podpisany**. Wymagana decyzja PO dla CORS/OPTIONS gapu.
-Jeśli PO przyjmie znany limit, następny krok to osobny task z właścicielem dla
-CORS/OPTIONS i opcjonalnie dedykowanego `goleak` assertion; P2-008 nie został
-rozpoczęty.
+Release gate został zaakceptowany przez PO. CORS/OPTIONS jest zamknięte w
+P2-008 (`7ac47c5`) po niezależnym security `APPROVE`; brak dedykowanego
+`goleak` assertion pozostaje nieblokującym zastrzeżeniem obserwacyjnym.
 
 ## Postęp
 
@@ -219,3 +214,4 @@ rozpoczęty.
 | 2026-11-26 | `IN_PROGRESS` | Big Pickle | Docker build/up/health/restart/recreate/persistence PASS |
 | 2026-11-26 | `IN_PROGRESS` | Big Pickle | Realny Firefox 161 + XPI 1.15.1: profile/tags/check/save/merge/search/delete PASS przez proxy |
 | 2026-11-26 | `PO_REVIEW` | Big Pickle | CORS/OPTIONS udokumentowany jako release gap; oczekuje decyzji PO |
+| 2026-11-26 | `DONE` | PO | Release zaakceptowany; CORS/OPTIONS zamknięte przez P2-008 |

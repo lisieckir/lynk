@@ -273,15 +273,16 @@ nullable metadata and `auto_tags=[]`; after delete the API returned `count=0`.
 Raw evidence: `/tmp/opencode/p2-007/firefox-e2e.log` and
 `/tmp/opencode/p2-007/proxy-requests.log`.
 
-### CORS/OPTIONS finding
+### CORS/OPTIONS finding (resolved by P2-008)
 
 The proxy passed `Authorization` through and pagination links stayed relative,
 but an `OPTIONS /api/bookmarks/` preflight with `Origin: https://example.com`
 returned `401` without a token and `405` (`Allow: GET, POST`) with a token. A
 simple `GET` with `Origin` and token returned `200` with no `Access-Control-*`
-headers. Application source has no `OPTIONS` or CORS handling and no trusted
-proxy-header handling. This is a documented release gap, not a code change in
-P2-007; PO decision is pending. See
+headers. P2-008 subsequently added a fail-closed, opt-in CORS policy with
+token-free preflight only for configured origins/methods/headers. The official
+extension remains supported, and browser clients require explicit
+`LYNK_CORS_ALLOWED_ORIGINS` configuration. See
 [api-compatibility.md](api-compatibility.md#proxy-cors-and-options-p2-007).
 
 ### Metadata worker note

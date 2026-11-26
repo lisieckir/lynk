@@ -4,9 +4,9 @@ Data: 2026-11-26
 
 ## Stan główny
 
-`main` zawiera P2-006 (`d2b5c6b` i wcześniejsze commity security review)
-oraz start P2-007 (`8333591`). Release validation została wykonana w
-izolowanym worktree na bazie `8333591`; nie zmieniono kodu produkcyjnego.
+`main` zawiera P2-008 (`7ac47c5`) oraz wcześniejsze zaakceptowane slice'y.
+Release validation P2-007 została wykonana w izolowanym worktree; P2-008
+zostało zintegrowane po niezależnym security review.
 
 ## Zadania
 
@@ -25,13 +25,13 @@ izolowanym worktree na bazie `8333591`; nie zmieniono kodu produkcyjnego.
   persistence/check mapping i security fixes zostały zintegrowane po APPROVE.
 * **P2-007 — `DONE`**: realny Firefox/XPI flow, Docker release, persistence,
   restart i proxy auth przeszły; CORS gap został przeniesiony do P2-008.
-* **P2-008 — `IN_PROGRESS`**: Hy4 Flash Free implementuje CORS/OPTIONS
-  hardening.
+* **P2-008 — `DONE`**: fail-closed CORS/OPTIONS, konfiguracja, testy i
+  security review `APPROVE` zostały zintegrowane.
 
 ## Punkt wznowienia
 
-P2-007 jest zaakceptowane. CORS/OPTIONS pozostaje osobnym hardening taskiem
-P2-008 i nie blokuje oficjalnego rozszerzenia, które przeszło flow przez proxy.
+P2-008 jest zamknięte. Następny brak Definition of Done to web interface;
+potem import/export i backup/restore.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

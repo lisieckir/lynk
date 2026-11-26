@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `DONE` |
 | Priorytet | `P1` |
 | Owner | Hy4 Flash Free |
 | Faza | Phase 4 hardening |
@@ -28,7 +28,7 @@ dla browser clients, bez osłabiania auth ani ujawniania danych.
 - [x] `Authorization` jest jawnie dozwolony tylko w skonfigurowanej polityce.
 - [x] `/health` zachowuje publiczny kontrakt.
 - [x] `make check`, test/race, compatibility i build przechodzą.
-- [ ] Niezależny security review APPROVE — oczekuje na reviewera.
+- [x] Niezależny security review APPROVE — severity `NONE`.
 
 ## Wynik skrócony
 
@@ -56,3 +56,4 @@ w `tests/integration/cors_test.go`.
 |---|---|---|---|
 | 2026-11-26 | `IN_PROGRESS` | Hy4 Flash Free | Przydzielono follow-up po P2-007 |
 | 2026-11-26 | `IMPLEMENTED` | Hy4 Flash Free | CORS/OPTIONS z konfigurowalną allow-listą, testy i dokumentacja; pełna macierz walidacji PASS; security review w toku |
+| 2026-11-26 | `DONE` | Big Pickle | Security review `APPROVE`; pełna macierz po integracji PASS; PO_REVIEW PASS |

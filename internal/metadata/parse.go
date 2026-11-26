@@ -6,19 +6,45 @@ import (
 	"unicode/utf8"
 )
 
+func asciiLower(b byte) byte {
+	if b >= 'A' && b <= 'Z' {
+		return b + ('a' - 'A')
+	}
+	return b
+}
+
+func indexFoldASCII(data []byte, sep string) int {
+	if len(sep) == 0 {
+		return 0
+	}
+	n := len(sep)
+	if len(data) < n {
+		return -1
+	}
+	for i := 0; i+n <= len(data); i++ {
+		match := true
+		for j := 0; j < n; j++ {
+			if asciiLower(data[i+j]) != sep[j] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return i
+		}
+	}
+	return -1
+}
+
 func parseHTML(data []byte) Result {
-	// Work on a lowercase copy for tag/name/property matching, but extract
-	// original bytes to preserve case/encoding as best we can.
-	lower := bytes.ToLower(data)
 	var res Result
 
 	// Extract <title>...</title>
-	if idx := bytes.Index(lower, []byte("<title")); idx >= 0 {
+	if idx := indexFoldASCII(data, "<title"); idx >= 0 {
 		gt := bytes.IndexByte(data[idx:], '>')
 		if gt >= 0 {
 			start := idx + gt + 1
-			restLower := lower[start:]
-			endTag := bytes.Index(restLower, []byte("</title"))
+			endTag := indexFoldASCII(data[start:], "</title")
 			if endTag >= 0 {
 				raw := data[start : start+endTag]
 				res.Title = strings.TrimSpace(stripTagsBytes(raw))
@@ -28,18 +54,18 @@ func parseHTML(data []byte) Result {
 
 	// Extract meta tags
 	i := 0
-	for i < len(lower) {
-		idx := bytes.Index(lower[i:], []byte("<meta"))
+	for i < len(data) {
+		idx := indexFoldASCII(data[i:], "<meta")
 		if idx < 0 {
 			break
 		}
 		i += idx
-		gt := bytes.IndexByte(data[i:], '>')
-		if gt < 0 {
+		gtRel := bytes.IndexByte(data[i:], '>')
+		if gtRel < 0 {
 			break
 		}
-		tagContent := data[i+5 : i+gt] // inside <meta ...>
-		i += gt + 1
+		tagContent := data[i+5 : i+gtRel] // inside <meta ...> (skip "<meta")
+		i += gtRel + 1
 		attrs := parseAttrsBytes(tagContent)
 		name := strings.ToLower(strings.TrimSpace(attrs["name"]))
 		prop := strings.ToLower(strings.TrimSpace(attrs["property"]))
@@ -60,18 +86,18 @@ func parseHTML(data []byte) Result {
 
 	// Extract favicon from <link ...>
 	i = 0
-	for i < len(lower) {
-		idx := bytes.Index(lower[i:], []byte("<link"))
+	for i < len(data) {
+		idx := indexFoldASCII(data[i:], "<link")
 		if idx < 0 {
 			break
 		}
 		i += idx
-		gt := bytes.IndexByte(data[i:], '>')
-		if gt < 0 {
+		gtRel := bytes.IndexByte(data[i:], '>')
+		if gtRel < 0 {
 			break
 		}
-		tagContent := data[i+5 : i+gt]
-		i += gt + 1
+		tagContent := data[i+5 : i+gtRel]
+		i += gtRel + 1
 		attrs := parseAttrsBytes(tagContent)
 		rel := strings.ToLower(strings.TrimSpace(attrs["rel"]))
 		href := strings.TrimSpace(attrs["href"])
@@ -134,7 +160,7 @@ func parseAttrsBytes(s []byte) map[string]string {
 			break
 		}
 		var val string
-		if s[0] == '"' {
+		if len(s) > 0 && s[0] == '"' {
 			s = s[1:]
 			end := bytes.IndexByte(s, '"')
 			if end < 0 {
@@ -142,7 +168,7 @@ func parseAttrsBytes(s []byte) map[string]string {
 			}
 			val = string(s[:end])
 			s = s[end+1:]
-		} else if s[0] == '\'' {
+		} else if len(s) > 0 && s[0] == '\'' {
 			s = s[1:]
 			end := bytes.IndexByte(s, '\'')
 			if end < 0 {

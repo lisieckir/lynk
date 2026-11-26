@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"sync"
 	"sync/atomic"
@@ -74,7 +75,15 @@ func (w *MetadataWorker) Start(ctx context.Context, workers int) {
 func (w *MetadataWorker) process(ctx context.Context, job MetadataJob) {
 	res, err := w.fetcher.Fetch(ctx, job.URL)
 	if err != nil {
-		w.logger.Debug("metadata fetch failed", "bookmark_id", job.BookmarkID, "error", err)
+		errClass := "fetch_failed"
+		if errors.Is(err, metadata.ErrBlockedURL) {
+			errClass = "blocked"
+		} else if errors.Is(err, context.Canceled) {
+			errClass = "canceled"
+		} else if errors.Is(err, context.DeadlineExceeded) {
+			errClass = "timeout"
+		}
+		w.logger.Debug("metadata fetch failed", "bookmark_id", job.BookmarkID, "error_class", errClass)
 		return
 	}
 	title := res.OGTitle

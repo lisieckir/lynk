@@ -273,9 +273,7 @@ A query with no word characters matches nothing.
 page size of 100 as the bookmark lists: `count` is the total number of owned
 tags, `next`/`previous` are request-derived and `null` at the ends of the
 result set, and the extension's `limit=5000` loads the whole set in one page.
-Check returns the documented `{bookmark,metadata,auto_tags}` shape with bounded,
-null metadata, `auto_tags: []` and no network fetch; `ignore_cache` is accepted
-and ignored because Lynk keeps no metadata cache. Field-keyed `400` responses,
+Check returns the documented `{bookmark,metadata,auto_tags}` shape. Metadata is fetched best-effort via an SSRF-safe fetcher (bounded timeouts, redirects and body size); on failure or non-HTML responses fields may be null and `auto_tags` is `[]`. `ignore_cache` is accepted and ignored. Field-keyed `400` responses,
 `401`, owner-scoped `404`, `201` and empty `204` are covered by `httptest`
 tests against a real migrated SQLite database; `make test-compat` runs those
 tests.
@@ -284,7 +282,7 @@ tests.
 
 `tests/integration/` replays the pinned extension revision's own request
 sequence in-process: a real migrated SQLite database from `internal/database`
-plus `httptest`, with no network, no browser and no metadata fetcher.
+plus `httptest`, with no browser; network access is not required for the replayed flows.
 `make test-integration` runs the package. The replayed flows are:
 
 | Test | Replayed requests |

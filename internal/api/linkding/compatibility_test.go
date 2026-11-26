@@ -514,6 +514,10 @@ func TestCheckContract(t *testing.T) {
 	if result = decodeObject(t, rec); result["bookmark"] != nil {
 		t.Errorf("cross-user check leaked a bookmark: %v", result)
 	}
+	// ignore_cache is accepted
+	rec = request(t, f.handler, http.MethodGet,
+		"/api/bookmarks/check/?url="+urlQueryEscape("https://check.example/a?x=1")+"&ignore_cache=1", token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
 
 	for _, tc := range []struct {
 		name, query, field string
@@ -946,5 +950,28 @@ func TestArchiveUnarchiveAndArchivedList(t *testing.T) {
 	assertStatus(t, rec, http.StatusOK)
 	if page := decodeObject(t, rec); page["count"] != float64(1) {
 		t.Errorf("bob archived count = %v, want 1", page["count"])
+	}
+}
+
+func TestBookmarkMetadataFieldsSurfaced(t *testing.T) {
+	f := newFixture(t)
+	created := createBookmark(t, f.handler, token(f.aliceToken), map[string]any{
+		"url":   "https://example.com/meta",
+		"title": "Meta",
+	})
+	id := int64(created["id"].(float64))
+	ctx := context.Background()
+	_, err := f.db.ExecContext(ctx, `UPDATE bookmarks SET favicon_url=?, preview_image_url=? WHERE id=?`, "https://example.com/fav.png", "https://example.com/prev.png", id)
+	if err != nil {
+		t.Fatalf("update bookmark metadata fields: %v", err)
+	}
+	rec := request(t, f.handler, http.MethodGet, fmt.Sprintf("/api/bookmarks/%d/", id), token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	got := decodeObject(t, rec)
+	if got["favicon_url"] != "https://example.com/fav.png" {
+		t.Errorf("favicon_url = %v, want https://example.com/fav.png", got["favicon_url"])
+	}
+	if got["preview_image_url"] != "https://example.com/prev.png" {
+		t.Errorf("preview_image_url = %v, want https://example.com/prev.png", got["preview_image_url"])
 	}
 }

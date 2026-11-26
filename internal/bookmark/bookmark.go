@@ -409,7 +409,7 @@ func (s *Service) List(ctx context.Context, userID int64, archived bool, opts Pa
 	listArgs = append(listArgs, args...)
 	listArgs = append(listArgs, limit, offset)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,date_added,date_modified
+		`SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,web_archive_snapshot_url,favicon_url,preview_image_url,date_added,date_modified
 		 FROM bookmarks WHERE `+where+`
 		 ORDER BY date_added DESC, id DESC LIMIT ? OFFSET ?`, listArgs...)
 	if err != nil {
@@ -681,10 +681,10 @@ type queryer interface {
 }
 
 func getByNormalized(ctx context.Context, q queryer, userID int64, normalized string) (Bookmark, error) {
-	return scanWithTags(ctx, q, q.QueryRowContext(ctx, `SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,date_added,date_modified FROM bookmarks WHERE user_id=? AND url_normalized=?`, userID, normalized))
+	return scanWithTags(ctx, q, q.QueryRowContext(ctx, `SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,web_archive_snapshot_url,favicon_url,preview_image_url,date_added,date_modified FROM bookmarks WHERE user_id=? AND url_normalized=?`, userID, normalized))
 }
 func getByID(ctx context.Context, q queryer, userID, id int64) (Bookmark, error) {
-	return scanWithTags(ctx, q, q.QueryRowContext(ctx, `SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,date_added,date_modified FROM bookmarks WHERE user_id=? AND id=?`, userID, id))
+	return scanWithTags(ctx, q, q.QueryRowContext(ctx, `SELECT id,user_id,url,title,description,notes,is_archived,unread,shared,web_archive_snapshot_url,favicon_url,preview_image_url,date_added,date_modified FROM bookmarks WHERE user_id=? AND id=?`, userID, id))
 }
 func scanWithTags(ctx context.Context, q queryer, row *sql.Row) (Bookmark, error) {
 	b, err := scanBookmark(row)
@@ -697,12 +697,22 @@ func scanWithTags(ctx context.Context, q queryer, row *sql.Row) (Bookmark, error
 func scanBookmark(s scanner) (Bookmark, error) {
 	var b Bookmark
 	var archived, unread, shared bool
+	var webArch, fav, prev sql.NullString
 	var added, modified string
-	err := s.Scan(&b.ID, &b.UserID, &b.URL, &b.Title, &b.Description, &b.Notes, &archived, &unread, &shared, &added, &modified)
+	err := s.Scan(&b.ID, &b.UserID, &b.URL, &b.Title, &b.Description, &b.Notes, &archived, &unread, &shared, &webArch, &fav, &prev, &added, &modified)
 	if err != nil {
 		return Bookmark{}, err
 	}
 	b.IsArchived, b.Unread, b.Shared = archived, unread, shared
+	if webArch.Valid && webArch.String != "" {
+		b.WebArchiveSnapshotURL = &webArch.String
+	}
+	if fav.Valid && fav.String != "" {
+		b.FaviconURL = &fav.String
+	}
+	if prev.Valid && prev.String != "" {
+		b.PreviewImageURL = &prev.String
+	}
 	b.DateAdded, err = time.Parse(time.RFC3339Nano, added)
 	if err != nil {
 		return Bookmark{}, err

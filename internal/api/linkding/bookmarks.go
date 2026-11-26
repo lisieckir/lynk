@@ -269,10 +269,10 @@ func (a *API) setBookmarkArchived(w http.ResponseWriter, r *http.Request, userID
 
 // createBookmark serves POST /api/bookmarks/. The extension sends
 // ?disable_scraping[&disable_html_snapshot]: both are presence-checked query
-// parameters that Lynk accepts and ignores, because there is no scraper,
-// snapshot scheduler or network fetcher — scraping is always off and no
-// snapshot is ever scheduled. Their presence must not change the 201
-// contract.
+// parameters that Lynk accepts and ignores. There is no snapshot scheduler and
+// full-page scraping/snapshots are not performed; metadata fetching is handled
+// asynchronously by the SSRF-safe worker. Their presence must not change the
+// 201 contract.
 func (a *API) createBookmark(w http.ResponseWriter, r *http.Request, userID int64) {
 	req, ok := decodeCreateRequest(w, r)
 	if !ok {

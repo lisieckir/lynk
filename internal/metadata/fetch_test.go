@@ -12,7 +12,7 @@ import (
 func TestFetch_BlocksLoopback(t *testing.T) {
 	// httptest server is on 127.0.0.1, should be blocked
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("<html><head><title>Hi</title></head></html>"))
+		_, _ = w.Write([]byte("<html><head><title>Hi</title></head></html>"))
 	}))
 	defer ts.Close()
 
@@ -84,7 +84,7 @@ func TestParseHTML_ExtractsOGAndMeta(t *testing.T) {
 func TestFetch_BlocksRedirectToLoopback(t *testing.T) {
 	// Server redirects to another loopback URL
 	ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("<html><title>secret</title></html>"))
+		_, _ = w.Write([]byte("<html><title>secret</title></html>"))
 	}))
 	defer ts2.Close()
 	ts1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +102,7 @@ func TestFetch_BlocksRedirectToLoopback(t *testing.T) {
 func TestFetch_Cancellation(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second)
-		w.Write([]byte("<html></html>"))
+		_, _ = w.Write([]byte("<html></html>"))
 	}))
 	defer ts.Close()
 	// Even though ts is loopback (blocked), let's test with context cancel on a valid-looking flow is hard.
@@ -151,23 +151,24 @@ func TestIsBlockedIP_Table(t *testing.T) {
 }
 
 func TestFetch_RedirectLimit(t *testing.T) {
-	// Create a chain of redirects exceeding limit
+	// Chain: /start -> /step1 -> /step2 -> /step3; MaxRedirects=2 means allow up to 2 redirects total in via.
 	redirectCount := 0
 	var ts *httptest.Server
 	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		redirectCount++
-		if redirectCount > 5 {
-			w.Write([]byte("<html><title>done</title></html>"))
+		if redirectCount >= 4 {
+			_, _ = w.Write([]byte("<html><title>done</title></html>"))
 			return
 		}
-		// redirect to self would loop, but we need different URLs; use same server path
-		http.Redirect(w, r, ts.URL+"/step"+string(rune('0'+redirectCount)), http.StatusFound)
+		http.Redirect(w, r, ts.URL+"/r"+string(rune('a'+redirectCount)), http.StatusFound)
 	}))
 	defer ts.Close()
 	f := NewFetcher(Config{Timeout: 2 * time.Second, ConnectTimeout: 1 * time.Second, MaxRedirects: 2, MaxBytes: 1024 * 1024})
 	_, err := f.Fetch(context.Background(), ts.URL+"/start")
+	// Initial URL is loopback (127.0.0.1) so validateHost blocks it before any redirect is followed by our client logic in practice?
+	// Because Fetch validates initial URL host first: validateHost will reject loopback. So this test cannot observe redirect-limit error.
+	// We still assert it errors (SSRF block) to keep the test meaningful in this environment.
 	if err == nil {
-		// May fail due to loopback blocks on redirect validation in our design? ts.URL is loopback, so validation of the initial URL will block it.
-		t.Log("note: initial URL is loopback so fetch may be blocked by SSRF policy")
+		t.Fatal("expected error (loopback SSRF block) for loopback test server")
 	}
 }

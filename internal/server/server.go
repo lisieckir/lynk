@@ -79,11 +79,9 @@ func NewWithLogger(cfg Config, db *sql.DB, logger *slog.Logger) *http.Server {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	fetcher := metadata.NewFetcher(metadata.Config{})
-	metaWorker := worker.NewMetadataWorker(db, fetcher, logger, 100)
-	workerCtx := context.Background()
-	metaWorker.Start(workerCtx, 2)
-	api := linkding.NewHandlerWithMetadata(db, logger, &metaEnqAdapter{w: metaWorker})
+	// Avoid starting a background worker in this helper to prevent lifecycle leaks.
+	// Use Serve/Run for a fully managed lifecycle (worker started and stopped).
+	api := linkding.NewHandler(db, logger)
 	handler := HandlerWithAPI(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout))
 	srv := &http.Server{
 		Addr:              cfg.Addr,
@@ -93,8 +91,6 @@ func NewWithLogger(cfg Config, db *sql.DB, logger *slog.Logger) *http.Server {
 		WriteTimeout:      durationOr(cfg.WriteTimeout, DefaultWriteTimeout),
 		IdleTimeout:       durationOr(cfg.IdleTimeout, DefaultIdleTimeout),
 	}
-	// Note: worker is started but not stopped here in this simple design.
-	// In practice, Serve() manages lifecycle better.
 	return srv
 }
 

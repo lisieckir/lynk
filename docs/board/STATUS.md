@@ -25,7 +25,8 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-004](tasks/P2-004-linkding-search-mutations.md) | P0 | Search, pagination i mutacje bookmarków Linkdinga | MiMo-V2.6-Flash Free | `DONE` | P2-003 |
 | [P2-005](tasks/P2-005-extension-contract-replay.md) | P0 | Extension contract replay i parity pól | Nemotron Lightning Free | `DONE` | P2-004 |
 | [P2-006](tasks/P2-006-metadata-ssrf.md) | P0 | Asynchroniczne metadata extraction i SSRF protection | Iceman Free | `DONE` | P2-005 |
-| [P2-007](tasks/P2-007-release-e2e.md) | P0 | Release E2E i deployment validation | Big Pickle | `PO_REVIEW` | P2-006 |
+| [P2-007](tasks/P2-007-release-e2e.md) | P0 | Release E2E i deployment validation | Big Pickle | `DONE` | P2-006 |
+| [P2-008](tasks/P2-008-cors-options.md) | P1 | CORS i OPTIONS dla API | Hy4 Flash Free | `IN_PROGRESS` | P2-007 |
 
 ## Rejestr blockerów i decyzji
 
@@ -54,7 +55,9 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-007 | Wynik walidacji | Pełna macierz Go/lint/test/race/compat/integration/release oraz Docker build/health/restart/recreate/persistence PASS | PO |
 | 2026-11-26 | P2-007 | Release gap | Brak CORS nagłówków; `OPTIONS` bez tokenu `401`, z tokenem `405 Allow: GET, POST`. Oficjalne rozszerzenie działa przez host permissions | PO — decyzja o sign-off lub osobnym tasku |
 | 2026-11-26 | P2-007 | Zastrzeżenie | Brak dedykowanego `goleak` assertion; create nieblokujący, testy worker i race PASS, restart czyści shutdown | PO |
+| 2026-11-26 | P2-007 | Akceptacja PO | Firefox/XPI, Docker, proxy auth i persistence PASS; CORS gap przeniesiony do P2-008 | PO |
 | 2026-11-25 | P2-003 | Akceptacja | Finalny review APPROVE; API contract, compatibility tests, lint i race PASS | PO |
+| 2026-11-26 | P2-007 zaakceptowane; utworzono P2-008 hardening task | PO |
 
 ## Historia zmian tablicy
 

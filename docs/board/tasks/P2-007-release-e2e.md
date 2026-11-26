@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `PO_REVIEW` |
+| Status | `DONE` |
 | Priorytet | `P0` |
 | Owner | Big Pickle |
 | Faza | Phase 4 release gate |
@@ -36,10 +36,10 @@ Chrome E2E, SingleFile/assets/bundles oraz pełna upstream API parity.
 - [x] Docker build, health, restart i named-volume persistence PASS.
 - [x] Metadata worker nie blokuje create i kończy się bez obserwowanego
   wycieku; brak dedykowanego `goleak` assertion pozostaje zastrzeżeniem.
-- [ ] Proxy/CORS behavior sprawdzone: proxy PASS, natomiast CORS/OPTIONS jest
-  jawnym release gapem wymagającym decyzji PO.
+- [x] Proxy/CORS behavior sprawdzone: proxy PASS; CORS/OPTIONS gap przyjęty
+  jako osobny P2-008 follow-up, nie blokuje oficjalnego extension flow.
 - [x] `make check`, test/race, compatibility, integration i build przechodzą.
-- [ ] PO akceptuje release gate albo zapisuje konkretne blocker/next action.
+- [x] PO akceptuje release gate i zleca P2-008 dla CORS/OPTIONS.
 
 ## Wynik skrócony
 
@@ -50,7 +50,7 @@ Chrome E2E, SingleFile/assets/bundles oraz pełna upstream API parity.
 | Firefox + oficjalne rozszerzenie | PASS | Firefox 161.0 headless, XPI 1.15.1, realne żądania przez logging proxy; szczegóły w [api-compatibility.md](../../api-compatibility.md) |
 | Proxy `Authorization` | PASS | nagłówek przekazywany przez proxy; relative `next` bez internal host |
 | CORS/OPTIONS | **GAP** | brak `Access-Control-*`; `OPTIONS` bez tokenu `401`, z tokenem `405 Allow: GET, POST` |
-| PO sign-off | PENDING | status `PO_REVIEW` |
+| PO sign-off | ACCEPTED | status `DONE`; CORS/OPTIONS przeniesione do P2-008 |
 
 Nie zmieniono kodu produkcyjnego. Wszystkie zmiany w tym zadaniu są
 dokumentacją release validation.

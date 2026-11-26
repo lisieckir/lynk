@@ -23,16 +23,15 @@ izolowanym worktree na bazie `8333591`; nie zmieniono kodu produkcyjnego.
   pagination zostały zintegrowane po niezależnym APPROVE.
 * **P2-006 — `DONE`**: SSRF-safe metadata fetcher, worker lifecycle,
   persistence/check mapping i security fixes zostały zintegrowane po APPROVE.
-* **P2-007 — `PO_REVIEW`**: pełna macierz Go/lint/build, Docker
-  build/health/restart/recreate/persistence oraz realny Firefox 161.0
-  z oficjalnym XPI 1.15.1 PASS. Proxy `Authorization` PASS. Release gate
-  czeka na decyzję PO o CORS/OPTIONS gapie.
+* **P2-007 — `DONE`**: realny Firefox/XPI flow, Docker release, persistence,
+  restart i proxy auth przeszły; CORS gap został przeniesiony do P2-008.
+* **P2-008 — `IN_PROGRESS`**: Hy4 Flash Free implementuje CORS/OPTIONS
+  hardening.
 
 ## Punkt wznowienia
 
-P2-007 nie jest podpisany. Wymagana jest decyzja PO: przyjąć CORS/OPTIONS jako
-znany limit i otworzyć osobny task z ownerem, albo zlecić poprawkę przed
-sign-offem. Nie rozpoczęto P2-008.
+P2-007 jest zaakceptowane. CORS/OPTIONS pozostaje osobnym hardening taskiem
+P2-008 i nie blokuje oficjalnego rozszerzenia, które przeszło flow przez proxy.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

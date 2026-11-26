@@ -1,4 +1,3 @@
-// Package server wires Lynk's minimal net/http server and its lifecycle.
 package server
 
 import (
@@ -17,6 +16,7 @@ import (
 	"github.com/lisieckir/lynk/internal/health"
 	"github.com/lisieckir/lynk/internal/metadata"
 	"github.com/lisieckir/lynk/internal/shutdown"
+	"github.com/lisieckir/lynk/internal/web"
 	"github.com/lisieckir/lynk/internal/worker"
 )
 
@@ -35,6 +35,7 @@ type Config struct {
 	IdleTimeout       time.Duration
 	ShutdownTimeout   time.Duration
 	ReadinessTimeout  time.Duration
+	SecureCookies     bool
 	// CORS applies only to /api routes. /health stays public and unchanged.
 	CORS cors.Options
 }
@@ -48,6 +49,7 @@ func DefaultConfig(addr string) Config {
 		IdleTimeout:       DefaultIdleTimeout,
 		ShutdownTimeout:   shutdown.DefaultTimeout,
 		ReadinessTimeout:  health.DefaultTimeout,
+		SecureCookies:     false,
 		CORS:              cors.DefaultOptions(),
 	}
 }
@@ -64,30 +66,52 @@ func HandlerWithAPI(db *sql.DB, api http.Handler, timeout time.Duration) http.Ha
 	return HandlerWithAPIAndCORS(db, api, timeout, cors.Options{}, nil)
 }
 
-// HandlerWithAPIAndCORS mounts the API behind a CORS policy while leaving the
-// public health route outside that wrapper. Invalid options fail closed: no
-// browser origin receives CORS headers and the API keeps its auth contract.
-func HandlerWithAPIAndCORS(db *sql.DB, api http.Handler, timeout time.Duration, opts cors.Options, logger *slog.Logger) http.Handler {
+func handlerWithChecker(checker health.Checker, timeout time.Duration) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.Handle("GET "+health.Path, health.NewHandlerWithTimeout(checker, timeout))
+	return mux
+}
+
+func withSecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("X-XSS-Protection", "0")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func buildHandler(db *sql.DB, api http.Handler, timeout time.Duration, opts cors.Options, logger *slog.Logger, secureCookies bool) http.Handler {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	mux := handlerWithChecker(db, timeout)
+	// Mount web UI (outside /api, outside /health)
+	webHandler, err := web.NewHandler(db, logger, web.Config{SecureCookie: secureCookies})
+	if err != nil {
+		logger.Error("failed to create web handler", "error", err)
+	} else {
+		webHandler.Register(mux)
+	}
 	if api != nil {
 		policy, err := cors.New(opts)
 		if err != nil {
-			if logger != nil {
-				logger.Warn("invalid CORS configuration; browser CORS disabled", "error", err)
-			}
+			logger.Warn("invalid CORS configuration; browser CORS disabled", "error", err)
 		} else {
 			api = policy.Handler(api)
 		}
 		mux.Handle("/api/", api)
 		mux.Handle("/api", api)
 	}
-	return mux
+	return withSecurityHeaders(mux)
 }
 
-func handlerWithChecker(checker health.Checker, timeout time.Duration) *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.Handle("GET "+health.Path, health.NewHandlerWithTimeout(checker, timeout))
-	return mux
+// HandlerWithAPIAndCORS mounts the API behind a CORS policy while leaving the
+// public health route outside that wrapper. Invalid options fail closed: no
+// browser origin receives CORS headers and the API keeps its auth contract.
+func HandlerWithAPIAndCORS(db *sql.DB, api http.Handler, timeout time.Duration, opts cors.Options, logger *slog.Logger) http.Handler {
+	return buildHandler(db, api, timeout, opts, logger, false)
 }
 
 func New(cfg Config, db *sql.DB) *http.Server {
@@ -98,10 +122,8 @@ func NewWithLogger(cfg Config, db *sql.DB, logger *slog.Logger) *http.Server {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	// Avoid starting a background worker in this helper to prevent lifecycle leaks.
-	// Use Serve/Run for a fully managed lifecycle (worker started and stopped).
 	api := linkding.NewHandler(db, logger)
-	handler := HandlerWithAPIAndCORS(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger)
+	handler := buildHandler(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger, cfg.SecureCookies)
 	srv := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           handler,
@@ -158,7 +180,7 @@ func Serve(ctx context.Context, cfg Config, ln net.Listener, db *sql.DB, logger 
 	metaWorker.Start(workerCtx, 2)
 
 	api := linkding.NewHandlerWithMetadata(db, logger, &metaEnqAdapter{w: metaWorker})
-	handler := HandlerWithAPIAndCORS(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger)
+	handler := buildHandler(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger, cfg.SecureCookies)
 	srv := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           handler,
@@ -182,7 +204,6 @@ func Serve(ctx context.Context, cfg Config, ln net.Listener, db *sql.DB, logger 
 	cleanupErr := cleanupWith(serveCtx, cfg.ShutdownTimeout,
 		func(cleanupCtx context.Context) error {
 			logger.Info("http server shutting down")
-			// Stop worker first
 			metaWorker.Stop()
 			return srv.Shutdown(cleanupCtx)
 		},

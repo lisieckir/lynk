@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/lisieckir/lynk/internal/api/linkding"
+	"github.com/lisieckir/lynk/internal/cors"
 	"github.com/lisieckir/lynk/internal/health"
 	"github.com/lisieckir/lynk/internal/metadata"
 	"github.com/lisieckir/lynk/internal/shutdown"
@@ -34,6 +35,8 @@ type Config struct {
 	IdleTimeout       time.Duration
 	ShutdownTimeout   time.Duration
 	ReadinessTimeout  time.Duration
+	// CORS applies only to /api routes. /health stays public and unchanged.
+	CORS cors.Options
 }
 
 func DefaultConfig(addr string) Config {
@@ -45,6 +48,7 @@ func DefaultConfig(addr string) Config {
 		IdleTimeout:       DefaultIdleTimeout,
 		ShutdownTimeout:   shutdown.DefaultTimeout,
 		ReadinessTimeout:  health.DefaultTimeout,
+		CORS:              cors.DefaultOptions(),
 	}
 }
 
@@ -57,8 +61,23 @@ func HandlerWithReadinessTimeout(db *sql.DB, timeout time.Duration) http.Handler
 }
 
 func HandlerWithAPI(db *sql.DB, api http.Handler, timeout time.Duration) http.Handler {
+	return HandlerWithAPIAndCORS(db, api, timeout, cors.Options{}, nil)
+}
+
+// HandlerWithAPIAndCORS mounts the API behind a CORS policy while leaving the
+// public health route outside that wrapper. Invalid options fail closed: no
+// browser origin receives CORS headers and the API keeps its auth contract.
+func HandlerWithAPIAndCORS(db *sql.DB, api http.Handler, timeout time.Duration, opts cors.Options, logger *slog.Logger) http.Handler {
 	mux := handlerWithChecker(db, timeout)
 	if api != nil {
+		policy, err := cors.New(opts)
+		if err != nil {
+			if logger != nil {
+				logger.Warn("invalid CORS configuration; browser CORS disabled", "error", err)
+			}
+		} else {
+			api = policy.Handler(api)
+		}
 		mux.Handle("/api/", api)
 		mux.Handle("/api", api)
 	}
@@ -82,7 +101,7 @@ func NewWithLogger(cfg Config, db *sql.DB, logger *slog.Logger) *http.Server {
 	// Avoid starting a background worker in this helper to prevent lifecycle leaks.
 	// Use Serve/Run for a fully managed lifecycle (worker started and stopped).
 	api := linkding.NewHandler(db, logger)
-	handler := HandlerWithAPI(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout))
+	handler := HandlerWithAPIAndCORS(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger)
 	srv := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           handler,
@@ -139,7 +158,7 @@ func Serve(ctx context.Context, cfg Config, ln net.Listener, db *sql.DB, logger 
 	metaWorker.Start(workerCtx, 2)
 
 	api := linkding.NewHandlerWithMetadata(db, logger, &metaEnqAdapter{w: metaWorker})
-	handler := HandlerWithAPI(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout))
+	handler := HandlerWithAPIAndCORS(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger)
 	srv := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           handler,

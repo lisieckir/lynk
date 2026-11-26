@@ -9,8 +9,8 @@ Docker/Compose and proxy validation. All of it is verified by
 `make test-compat` and `make test-integration`, plus the release evidence in
 [development.md](development.md). Remaining unimplemented areas are
 asset/bundle routes and newer Linkding search filters such as `sort`,
-`unread`, `shared`, `modified_since`/`added_since`. CORS/OPTIONS is a
-documented release gap from P2-007; see below.
+`unread`, `shared`, `modified_since`/`added_since`. P2-008 closes the
+P2-007 CORS/OPTIONS gap with an explicit opt-in policy; see below.
 
 ## Scope and sources
 
@@ -358,27 +358,43 @@ next=/api/bookmarks/?limit=1&offset=1&q=p2-007
 so a reverse-proxy deployment does not leak an internal host in pagination
 links.
 
-CORS/OPTIONS is a concrete release gap:
+P2-008 replaces that gap with a fail-closed, opt-in CORS policy. With
+`LYNK_CORS_ALLOWED_ORIGINS=https://app.example.com` and
+`LYNK_CORS_ALLOWED_HEADERS=Content-Type,Authorization`:
 
 ```text
-OPTIONS /api/bookmarks/
-  Origin: https://example.com
+OPTIONS /api/bookmarks/  (no token)
+  Origin: https://app.example.com
   Access-Control-Request-Method: POST
   Access-Control-Request-Headers: authorization,content-type
-  no token        -> 401
-  with token      -> 405, Allow: GET, POST
+  -> 204, no body
+     Access-Control-Allow-Origin: https://app.example.com
+     Access-Control-Allow-Methods: GET, POST
+     Access-Control-Allow-Headers: Authorization, Content-Type
+     Access-Control-Max-Age: 600
+     Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
 
-GET /api/user/profile/ with Origin and token
-  -> 200, no Access-Control-* response headers
+OPTIONS /api/bookmarks/ with a disallowed Origin, method or header
+  -> 403, empty body, no Access-Control-* headers
+
+GET /api/user/profile/ with allowed Origin and token
+  -> 200, Access-Control-Allow-Origin and Vary: Origin
+
+GET /api/user/profile/ with disallowed Origin and token
+  -> 200, no Access-Control-* headers (browser discards the response)
+
+GET /health with or without Origin
+  -> 200, {"status":"ok"}, no CORS headers (public, outside the wrapper)
 ```
 
-Application source has no `OPTIONS` route and emits no `Access-Control-*`
-headers; it also has no trusted-proxy header handling. The official extension
-is unaffected because its manifest has `http://*/*` and `https://*/*` host
-permissions and sends its token directly. A browser web client served from a
-different origin would be blocked. This was documented rather than patched in
-P2-007; the PO must either accept it as a known release limit with a separate
-owner/task, or require a scoped CORS/OPTIONS change before sign-off.
+There is still no trusted-proxy header handling. Wildcard origins and
+`Access-Control-Allow-Credentials` are never emitted; `Authorization` is only
+listed when explicitly configured. Requests without an `Origin` header keep
+the original contract: no token means `401`, and a plain `OPTIONS` is still
+`405, Allow: GET, POST`. The official extension remains unaffected because its
+manifest has `http://*/*` and `https://*/*` host permissions and sends its
+token directly; a browser web client now works only from an explicitly
+configured origin.
 
 ## Explicit non-requirements for Phase 1/3
 
@@ -414,9 +430,9 @@ Also explicitly deferred, and visible in the API as documented no-ops:
    create-is-update-on-duplicate behavior. Implementing strict duplicate
    rejection would break the official extension.
 4. Reverse-proxy handling of `Authorization` and request-derived pagination
-   is verified. CORS/OPTIONS remains an open release gap from P2-007; the
-   official extension works through host permissions, but a web client from
-   another origin does not. See the P2-007 section above.
+   is verified. Browser clients require an explicit P2-008 CORS origin policy;
+   the official extension works through host permissions regardless of it.
+   See the CORS section above.
 
 ## References
 

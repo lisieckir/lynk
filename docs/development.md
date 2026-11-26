@@ -1,9 +1,9 @@
 # Development and toolchain
 
-Status: P2-007 release validation is complete and awaiting a PO decision on
-the CORS/OPTIONS gap. The versions below were validated by the P1-003 smoke
-tests (FTS5, WAL, foreign keys, busy timeout and online backup) and again by
-the P2-007 matrix; no `SPEC.md` or driver-version change was made.
+Status: P2-007 release validation is accepted; P2-008 closes the CORS/OPTIONS
+gap behind an explicit opt-in policy. The versions below were validated by the
+P1-003 smoke tests (FTS5, WAL, foreign keys, busy timeout and online backup)
+and again by the P2-007 matrix; no driver-version change was made.
 
 ## Module and pinned versions
 
@@ -27,6 +27,30 @@ UI handlers remain later-phase tasks.
 
 If a future validation fails, the version decision must be reopened explicitly;
 see [architecture.md](architecture.md) and the P1-001 decision log.
+
+## Browser CORS (P2-008)
+
+`internal/cors` implements a fail-closed policy for `/api` routes only.
+`LYNK_CORS_ALLOWED_ORIGINS` is a comma-separated list of exact `http(s)://host[:port]`
+origins; it is empty by default, so no browser origin receives
+`Access-Control-*` headers until an operator opts in. Wildcard origins,
+wildcard methods/headers, paths, query strings and user info are rejected at
+configuration load time. `LYNK_CORS_ALLOWED_METHODS` (default `GET,POST`) and
+`LYNK_CORS_ALLOWED_HEADERS` (default `Content-Type`) gate preflight;
+`Authorization` must be listed explicitly to allow token-bearing browser
+clients. `LYNK_CORS_MAX_AGE` (default `600`, maximum `86400` seconds) emits
+`Access-Control-Max-Age`. The policy never emits `Access-Control-Allow-Origin: *`
+or `Access-Control-Allow-Credentials`: Lynk authenticates with an
+`Authorization` token, not cookies.
+
+A preflight is answered with `204` only for an allowed origin, method and set
+of headers, without requiring a token. Disallowed origins, methods or headers
+get `403` with an empty body and no CORS headers; ordinary requests from
+disallowed origins continue through the normal auth path but carry no CORS
+headers, so a browser cannot read them while non-browser clients and the
+official extension keep working. Responses vary on `Origin` (and preflight
+responses on `Access-Control-Request-Method`/`-Headers`). `GET /health` stays
+public, outside the CORS wrapper, with its original body and status.
 
 ## Reproducibility
 

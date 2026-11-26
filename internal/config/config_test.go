@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/lisieckir/lynk/internal/cors"
 )
 
 func lookupFrom(values map[string]string) LookupFunc {
@@ -23,6 +25,7 @@ func TestDefaultMatchesSpec(t *testing.T) {
 		LogLevel:      slog.LevelInfo,
 		BaseURL:       "https://lynk.example.com",
 		HealthTimeout: 2 * time.Second,
+		CORS:          cors.DefaultOptions(),
 	}
 	if got := Default(); got != want {
 		t.Fatalf("Default() = %+v, want %+v", got, want)
@@ -38,7 +41,9 @@ func TestLoadFromDefaults(t *testing.T) {
 		"blank": {
 			"LYNK_ENV": "", "LYNK_HTTP_ADDR": " ", "LYNK_DATA_DIR": "",
 			"LYNK_DATABASE_PATH": "", "LYNK_LOG_LEVEL": "\t", "LYNK_BASE_URL": "",
-			"LYNK_HEALTH_TIMEOUT": "",
+			"LYNK_HEALTH_TIMEOUT": "", "LYNK_CORS_ALLOWED_ORIGINS": "",
+			"LYNK_CORS_ALLOWED_METHODS": "", "LYNK_CORS_ALLOWED_HEADERS": "",
+			"LYNK_CORS_MAX_AGE": "",
 		},
 	}
 	for name, values := range tests {
@@ -135,6 +140,29 @@ func TestLoadFromValidValues(t *testing.T) {
 				t.Errorf("HealthTimeout = %v", c.HealthTimeout)
 			}
 		}},
+		{"cors allowed origins", map[string]string{"LYNK_CORS_ALLOWED_ORIGINS": "https://app.example.com, https://admin.example.com:8443"}, func(t *testing.T, c Config) {
+			if c.CORS.AllowedOrigins != "https://app.example.com, https://admin.example.com:8443" {
+				t.Errorf("CORS.AllowedOrigins = %q", c.CORS.AllowedOrigins)
+			}
+			if c.CORS.AllowedMethods != "GET, POST" || c.CORS.AllowedHeaders != "Content-Type" {
+				t.Errorf("CORS safe defaults changed: %+v", c.CORS)
+			}
+			if c.CORS.MaxAgeSeconds != cors.DefaultMaxAgeSeconds {
+				t.Errorf("CORS.MaxAgeSeconds = %d", c.CORS.MaxAgeSeconds)
+			}
+		}},
+		{"cors explicit methods and headers", map[string]string{
+			"LYNK_CORS_ALLOWED_METHODS": "GET, POST, DELETE",
+			"LYNK_CORS_ALLOWED_HEADERS": "Content-Type, Authorization",
+			"LYNK_CORS_MAX_AGE":         "300",
+		}, func(t *testing.T, c Config) {
+			if c.CORS.AllowedMethods != "GET, POST, DELETE" || c.CORS.AllowedHeaders != "Content-Type, Authorization" {
+				t.Errorf("CORS policy = %+v", c.CORS)
+			}
+			if c.CORS.MaxAgeSeconds != 300 {
+				t.Errorf("CORS.MaxAgeSeconds = %d", c.CORS.MaxAgeSeconds)
+			}
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -186,6 +214,16 @@ func TestLoadFromInvalidValues(t *testing.T) {
 		{"health timeout malformed", map[string]string{"LYNK_HEALTH_TIMEOUT": "soon"}, "LYNK_HEALTH_TIMEOUT"},
 		{"health timeout zero", map[string]string{"LYNK_HEALTH_TIMEOUT": "0s"}, "LYNK_HEALTH_TIMEOUT"},
 		{"health timeout negative", map[string]string{"LYNK_HEALTH_TIMEOUT": "-1s"}, "LYNK_HEALTH_TIMEOUT"},
+		{"cors wildcard origin", map[string]string{"LYNK_CORS_ALLOWED_ORIGINS": "*"}, "LYNK_CORS_ALLOWED_ORIGINS"},
+		{"cors wildcard subdomain", map[string]string{"LYNK_CORS_ALLOWED_ORIGINS": "https://*.example.com"}, "LYNK_CORS_ALLOWED_ORIGINS"},
+		{"cors origin with path", map[string]string{"LYNK_CORS_ALLOWED_ORIGINS": "https://example.com/lynk"}, "LYNK_CORS_ALLOWED_ORIGINS"},
+		{"cors wildcard method", map[string]string{"LYNK_CORS_ALLOWED_METHODS": "*"}, "LYNK_CORS_ALLOWED_METHODS"},
+		{"cors unknown method", map[string]string{"LYNK_CORS_ALLOWED_METHODS": "TRACE"}, "LYNK_CORS_ALLOWED_METHODS"},
+		{"cors wildcard header", map[string]string{"LYNK_CORS_ALLOWED_HEADERS": "*"}, "LYNK_CORS_ALLOWED_HEADERS"},
+		{"cors invalid header", map[string]string{"LYNK_CORS_ALLOWED_HEADERS": "X Bad Header"}, "LYNK_CORS_ALLOWED_HEADERS"},
+		{"cors max age malformed", map[string]string{"LYNK_CORS_MAX_AGE": "soon"}, "LYNK_CORS_MAX_AGE"},
+		{"cors max age negative", map[string]string{"LYNK_CORS_MAX_AGE": "-1"}, "LYNK_CORS_MAX_AGE"},
+		{"cors max age too large", map[string]string{"LYNK_CORS_MAX_AGE": "90000"}, "LYNK_CORS_MAX_AGE"},
 		{"multiple invalid values", map[string]string{"LYNK_ENV": "staging", "LYNK_HTTP_ADDR": "localhost"}, "LYNK_ENV"},
 	}
 	for _, tt := range tests {
@@ -238,6 +276,20 @@ func TestValidateRejectsProgrammaticChanges(t *testing.T) {
 	cfg.HealthTimeout = 0
 	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "LYNK_HEALTH_TIMEOUT") {
 		t.Fatalf("Validate accepted zero health timeout: %v", err)
+	}
+}
+
+func TestValidateRejectsUnsafeProgrammaticCORSChanges(t *testing.T) {
+	cfg := Default()
+	cfg.CORS.AllowedOrigins = "*"
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "LYNK_CORS_ALLOWED_ORIGINS") {
+		t.Fatalf("Validate accepted wildcard origin: %v", err)
+	}
+
+	cfg = Default()
+	cfg.CORS.AllowedHeaders = "Authorization, *"
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "LYNK_CORS_ALLOWED_HEADERS") {
+		t.Fatalf("Validate accepted wildcard header: %v", err)
 	}
 }
 

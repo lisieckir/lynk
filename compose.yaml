@@ -5,6 +5,9 @@
 #   LYNK_PORT             published host port for the app (default 9090)
 #   DOCKER_IMAGE / DOCKER_TAG  image used by make docker-up / docker-pull, etc.
 #   LYNK_ENV, LYNK_LOG_LEVEL, LYNK_BASE_URL, LYNK_HEALTH_TIMEOUT  app config
+#   LYNK_CORS_ALLOWED_ORIGINS / METHODS / HEADERS / MAX_AGE  browser CORS
+#     (empty origins = no browser origin is granted Access-Control-* headers;
+#      Authorization is never allowed unless explicitly listed in HEADERS)
 
 services:
   lynk:
@@ -23,6 +26,11 @@ services:
       LYNK_LOG_LEVEL: ${LYNK_LOG_LEVEL:-info}
       LYNK_BASE_URL: ${LYNK_BASE_URL:-https://lynk.example.com}
       LYNK_HEALTH_TIMEOUT: ${LYNK_HEALTH_TIMEOUT:-2s}
+      # Safe default: no origins allowed until explicitly configured.
+      LYNK_CORS_ALLOWED_ORIGINS: ${LYNK_CORS_ALLOWED_ORIGINS:-}
+      LYNK_CORS_ALLOWED_METHODS: ${LYNK_CORS_ALLOWED_METHODS:-GET,POST}
+      LYNK_CORS_ALLOWED_HEADERS: ${LYNK_CORS_ALLOWED_HEADERS:-Content-Type}
+      LYNK_CORS_MAX_AGE: ${LYNK_CORS_MAX_AGE:-600}
     volumes:
       - lynk_data:/data
     healthcheck:

@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lisieckir/lynk/internal/cors"
 )
 
 // defaultHealthTimeout bounds a readiness ping. It matches the safe default in
@@ -57,6 +59,9 @@ type Config struct {
 	LogLevel      slog.Level
 	BaseURL       string
 	HealthTimeout time.Duration
+	// CORS is opt-in: its default has no allowed origins, so no browser
+	// origin is granted Access-Control-* headers until one is configured.
+	CORS cors.Options
 }
 
 // Default returns the values documented in SPEC.md section 8.
@@ -69,6 +74,7 @@ func Default() Config {
 		LogLevel:      slog.LevelInfo,
 		BaseURL:       "https://lynk.example.com",
 		HealthTimeout: defaultHealthTimeout,
+		CORS:          cors.DefaultOptions(),
 	}
 }
 
@@ -143,6 +149,23 @@ func LoadFrom(lookup LookupFunc) (Config, error) {
 			cfg.HealthTimeout = timeout
 		}
 	}
+	if raw, ok := lookupValue(lookup, "LYNK_CORS_ALLOWED_ORIGINS"); ok {
+		cfg.CORS.AllowedOrigins = raw
+	}
+	if raw, ok := lookupValue(lookup, "LYNK_CORS_ALLOWED_METHODS"); ok {
+		cfg.CORS.AllowedMethods = raw
+	}
+	if raw, ok := lookupValue(lookup, "LYNK_CORS_ALLOWED_HEADERS"); ok {
+		cfg.CORS.AllowedHeaders = raw
+	}
+	if raw, ok := lookupValue(lookup, "LYNK_CORS_MAX_AGE"); ok {
+		maxAge, err := strconv.Atoi(strings.TrimSpace(raw))
+		if err != nil {
+			errs = append(errs, fmt.Errorf("LYNK_CORS_MAX_AGE: %w", err))
+		} else {
+			cfg.CORS.MaxAgeSeconds = maxAge
+		}
+	}
 
 	// Validate is intentionally called even after successful parsing: it is
 	// the single source of truth for invariants, including programmatic use.
@@ -179,6 +202,9 @@ func (c Config) Validate() error {
 	}
 	if err := validateHealthTimeout(c.HealthTimeout); err != nil {
 		errs = append(errs, fmt.Errorf("LYNK_HEALTH_TIMEOUT: %w", err))
+	}
+	if _, err := cors.New(c.CORS); err != nil {
+		errs = append(errs, fmt.Errorf("LYNK_CORS_ALLOWED_ORIGINS, LYNK_CORS_ALLOWED_METHODS, LYNK_CORS_ALLOWED_HEADERS, LYNK_CORS_MAX_AGE: %w", err))
 	}
 	return errors.Join(errs...)
 }

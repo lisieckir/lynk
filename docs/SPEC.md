@@ -381,6 +381,9 @@ Do not rely solely on validating the URL string.
 - CSRF protection for browser sessions.
 - Secure session cookies.
 - Security headers.
+- CORS allow-lists must be explicit: no wildcard origin, no credentialed
+  wildcard, and preflight restricted to configured methods and headers.
+  `Authorization` is granted only when explicitly configured.
 - Input validation.
 - SQL injection protection.
 - No secrets in logs.
@@ -482,6 +485,11 @@ LYNK_DATA_DIR=/data
 LYNK_DATABASE_PATH=/data/lynk.db
 LYNK_LOG_LEVEL=info
 LYNK_BASE_URL=https://lynk.example.com
+# Browser CORS is opt-in: no origins are allowed by default.
+LYNK_CORS_ALLOWED_ORIGINS=
+LYNK_CORS_ALLOWED_METHODS=GET,POST
+LYNK_CORS_ALLOWED_HEADERS=Content-Type
+LYNK_CORS_MAX_AGE=600
 ```
 
 The application must be able to initialize its database automatically.

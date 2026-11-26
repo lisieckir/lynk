@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lisieckir/lynk/internal/api/linkding"
+	"github.com/lisieckir/lynk/internal/cors"
 	"github.com/lisieckir/lynk/internal/database"
 	"github.com/lisieckir/lynk/internal/health"
 )
@@ -288,6 +290,120 @@ func TestRunListenFailureClosesDatabase(t *testing.T) {
 	}
 	if err := db.PingContext(context.Background()); err == nil {
 		t.Error("database remained open after listen failure")
+	}
+}
+
+func testCORSOptions() cors.Options {
+	return cors.Options{
+		AllowedOrigins: "https://app.example.com",
+		AllowedMethods: "GET, POST",
+		AllowedHeaders: "Content-Type",
+		MaxAgeSeconds:  600,
+	}
+}
+
+func serveRequest(h http.Handler, method, path, origin, authz string, preflightMethod, preflightHeaders string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, path, nil)
+	if origin != "" {
+		req.Header.Set("Origin", origin)
+	}
+	if authz != "" {
+		req.Header.Set("Authorization", authz)
+	}
+	if preflightMethod != "" {
+		req.Header.Set("Access-Control-Request-Method", preflightMethod)
+	}
+	if preflightHeaders != "" {
+		req.Header.Set("Access-Control-Request-Headers", preflightHeaders)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestHandlerWithAPIAndCORSPreservesPublicHealth(t *testing.T) {
+	db, _ := openTestDB(t)
+	h := HandlerWithAPIAndCORS(db, linkding.NewHandler(db, nil), health.DefaultTimeout, testCORSOptions(), nil)
+
+	for _, origin := range []string{"", "https://app.example.com", "https://evil.example.com"} {
+		rec := serveRequest(h, http.MethodGet, health.Path, origin, "", "", "")
+		if rec.Code != http.StatusOK {
+			t.Errorf("GET %s with origin %q: status = %d, want 200", health.Path, origin, rec.Code)
+		}
+		if want := "{\"status\":\"ok\"}\n"; rec.Body.String() != want {
+			t.Errorf("GET %s with origin %q: body = %q, want %q", health.Path, origin, rec.Body.String(), want)
+		}
+		if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+			t.Errorf("health leaked CORS header %q for origin %q", got, origin)
+		}
+	}
+
+	// A preflight against the public route is answered by the health handler,
+	// not by the CORS middleware: its contract stays GET/HEAD and 405.
+	rec := serveRequest(h, http.MethodOptions, health.Path, "https://app.example.com", "", http.MethodGet, "content-type")
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("OPTIONS %s status = %d, want 405", health.Path, rec.Code)
+	}
+	if got := rec.Header().Get("Allow"); got != "GET, HEAD" {
+		t.Errorf("OPTIONS %s Allow = %q, want %q", health.Path, got, "GET, HEAD")
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("OPTIONS %s leaked CORS header %q", health.Path, got)
+	}
+}
+
+func TestHandlerWithAPIAndCORSPreservesAPIAuth(t *testing.T) {
+	db, _ := openTestDB(t)
+	h := HandlerWithAPIAndCORS(db, linkding.NewHandler(db, nil), health.DefaultTimeout, testCORSOptions(), nil)
+
+	unauthenticated := serveRequest(h, http.MethodGet, "/api/user/profile/", "https://app.example.com", "", "", "")
+	if unauthenticated.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401; body = %s", unauthenticated.Code, unauthenticated.Body.String())
+	}
+	if got := unauthenticated.Header().Get("Access-Control-Allow-Origin"); got != "https://app.example.com" {
+		t.Errorf("401 Allow-Origin = %q", got)
+	}
+
+	preflight := serveRequest(h, http.MethodOptions, "/api/bookmarks/", "https://app.example.com", "", http.MethodPost, "content-type")
+	if preflight.Code != http.StatusNoContent {
+		t.Fatalf("preflight status = %d, want 204; body = %s", preflight.Code, preflight.Body.String())
+	}
+	if got := preflight.Header().Get("Access-Control-Allow-Origin"); got != "https://app.example.com" {
+		t.Errorf("preflight Allow-Origin = %q", got)
+	}
+	if got := preflight.Header().Get("Access-Control-Max-Age"); got != "600" {
+		t.Errorf("preflight Max-Age = %q", got)
+	}
+	if !strings.Contains(preflight.Header().Get("Vary"), "Origin") {
+		t.Errorf("preflight Vary = %q, want Origin", preflight.Header().Get("Vary"))
+	}
+
+	disallowed := serveRequest(h, http.MethodOptions, "/api/bookmarks/", "https://evil.example.com", "", http.MethodPost, "content-type")
+	if disallowed.Code != http.StatusForbidden {
+		t.Errorf("disallowed preflight status = %d, want 403", disallowed.Code)
+	}
+	if got := disallowed.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("disallowed preflight leaked Allow-Origin %q", got)
+	}
+}
+
+func TestHandlerWithAPIAndCORSFailsClosedOnInvalidOptions(t *testing.T) {
+	db, _ := openTestDB(t)
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logs, nil))
+	opts := testCORSOptions()
+	opts.AllowedOrigins = "*"
+	h := HandlerWithAPIAndCORS(db, linkding.NewHandler(db, nil), health.DefaultTimeout, opts, logger)
+
+	rec := serveRequest(h, http.MethodOptions, "/api/bookmarks/", "https://app.example.com", "", http.MethodPost, "content-type")
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want the unchanged 401 auth behavior", rec.Code)
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("invalid policy emitted Allow-Origin %q", got)
+	}
+	if !strings.Contains(logs.String(), "invalid CORS configuration") {
+		t.Errorf("logs missing invalid CORS warning: %s", logs.String())
 	}
 }
 

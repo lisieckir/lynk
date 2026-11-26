@@ -20,7 +20,7 @@ func (h *Handler) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
-		ctx := withSession(r.Context(), sess, c.Value)
+		ctx := withSession(r.Context(), sess)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
@@ -48,6 +48,11 @@ func (h *Handler) handleLoginGet(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	ip := clientIP(r)
+	if h.loginLimiter != nil && !h.loginLimiter.allow(ip) {
+		http.Redirect(w, r, "/login?err=too+many+attempts", http.StatusSeeOther)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Redirect(w, r, "/login?err=invalid+form", http.StatusSeeOther)
 		return
@@ -67,6 +72,9 @@ func (h *Handler) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login?err=invalid+token", http.StatusSeeOther)
 		return
 	}
+	if h.loginLimiter != nil {
+		h.loginLimiter.reset(ip)
+	}
 	sid, _, err := h.sessions.Create(user.ID)
 	if err != nil {
 		h.logger.Error("create session", "error", err)
@@ -79,6 +87,20 @@ func (h *Handler) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleLogoutPost(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	if err := r.ParseForm(); err != nil {
+		http.Redirect(w, r, "/?err=invalid+form", http.StatusSeeOther)
+		return
+	}
+	sess, ok := sessionFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if !ValidateSessionCSRF(sess, r.FormValue("csrf_token")) {
+		http.Redirect(w, r, "/?err=invalid+csrf", http.StatusSeeOther)
+		return
+	}
 	c, err := r.Cookie(SessionCookieName)
 	if err == nil && c.Value != "" {
 		h.sessions.Delete(c.Value)

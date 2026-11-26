@@ -62,3 +62,72 @@ func TestLoginGet(t *testing.T) {
 		t.Fatalf("expected login form content")
 	}
 }
+
+func TestLogoutRequiresCSRF(t *testing.T) {
+	h, _, token := setupTestHandler(t)
+	// Get login page to obtain login CSRF cookie
+	req := httptest.NewRequest(http.MethodGet, "/login", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login get: %d", rec.Code)
+	}
+	// extract login csrf cookie
+	var loginCSRF string
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "lynk_login_csrf" {
+			loginCSRF = c.Value
+		}
+	}
+	if loginCSRF == "" {
+		t.Fatalf("no login csrf cookie")
+	}
+	// Post login
+	form := "csrf_token=" + loginCSRF + "&token=" + token
+	req = httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "lynk_login_csrf", Value: loginCSRF})
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("login post: %d body=%s", rec.Code, rec.Body.String())
+	}
+	// get session cookie
+	var sessionCookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "lynk_session" {
+			sessionCookie = c
+		}
+	}
+	if sessionCookie == nil {
+		t.Fatalf("no session cookie")
+	}
+	// Try logout without CSRF
+	req = httptest.NewRequest(http.MethodPost, "/logout", strings.NewReader(""))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(sessionCookie)
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("logout without csrf: expected 303, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Header().Get("Location"), "err=invalid+csrf") {
+		t.Fatalf("expected invalid csrf redirect, got %s", rec.Header().Get("Location"))
+	}
+}
+
+func TestSecurityHeaders(t *testing.T) {
+	h, _, _ := setupTestHandler(t)
+	req := httptest.NewRequest(http.MethodGet, "/login", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Header().Get("X-Frame-Options") != "DENY" {
+		t.Errorf("missing X-Frame-Options")
+	}
+	if rec.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("missing Cache-Control no-store, got %q", rec.Header().Get("Cache-Control"))
+	}
+	if rec.Header().Get("Content-Security-Policy") == "" {
+		t.Errorf("missing CSP")
+	}
+}

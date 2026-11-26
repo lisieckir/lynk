@@ -63,7 +63,7 @@
               <button type="submit">Archive</button>
             </form>
             {{end}}
-            <form method="POST" action="/bookmarks/{{.ID}}/delete" class="inline" onsubmit="return confirm('Delete this bookmark?');">
+            <form method="POST" action="/bookmarks/{{.ID}}/delete" class="inline">
               <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
               <button type="submit" class="danger">Delete</button>
             </form>

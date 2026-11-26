@@ -11,7 +11,7 @@ import (
 )
 
 func (h *Handler) handleBookmarksList(w http.ResponseWriter, r *http.Request) {
-	sess, _, ok := getSessionFromCtx(r.Context())
+	sess, ok := sessionFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -55,7 +55,7 @@ func (h *Handler) handleBookmarksList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleBookmarkNewGet(w http.ResponseWriter, r *http.Request) {
-	sess, _, ok := getSessionFromCtx(r.Context())
+	sess, ok := sessionFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -71,7 +71,7 @@ func (h *Handler) handleBookmarkNewGet(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleBookmarkCreatePost(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-	sess, _, ok := getSessionFromCtx(r.Context())
+	sess, ok := sessionFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -97,6 +97,11 @@ func (h *Handler) handleBookmarkCreatePost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	tags := parseTagsInput(tagsStr)
+	// Detect duplicate to avoid silently "created" after merge
+	if existing, gerr := h.service.GetByURL(r.Context(), sess.UserID, urlStr); gerr == nil && existing.ID > 0 {
+		http.Redirect(w, r, fmt.Sprintf("/bookmarks/%d/edit?err=%s", existing.ID, url.QueryEscape("URL already exists; edit the existing bookmark")), http.StatusSeeOther)
+		return
+	}
 	_, err := h.service.Create(r.Context(), sess.UserID, bookmark.CreateInput{
 		URL:         urlStr,
 		Title:       title,
@@ -138,7 +143,7 @@ func parseTagsInput(s string) []string {
 }
 
 func (h *Handler) handleBookmarkEditGet(w http.ResponseWriter, r *http.Request) {
-	sess, _, ok := getSessionFromCtx(r.Context())
+	sess, ok := sessionFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -202,7 +207,7 @@ func (h *Handler) handleBookmarkGetSubpath(w http.ResponseWriter, r *http.Reques
 
 func (h *Handler) handleBookmarkByIDPost(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-	sess, _, ok := getSessionFromCtx(r.Context())
+	sess, ok := sessionFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return

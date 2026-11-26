@@ -24,20 +24,25 @@ type Session struct {
 
 // SessionStore is an in-memory process-scoped session store.
 type SessionStore struct {
-	mu       sync.Mutex
-	sessions map[string]*Session
-	ttl      time.Duration
-	now      func() time.Time
+	mu          sync.Mutex
+	sessions    map[string]*Session
+	ttl         time.Duration
+	now         func() time.Time
+	maxSessions int
 }
 
-func NewSessionStore(ttl time.Duration) *SessionStore {
+func NewSessionStore(ttl time.Duration, maxSessions int) *SessionStore {
 	if ttl <= 0 {
 		ttl = 24 * time.Hour
 	}
+	if maxSessions <= 0 {
+		maxSessions = 10000
+	}
 	return &SessionStore{
-		sessions: make(map[string]*Session),
-		ttl:      ttl,
-		now:      time.Now,
+		sessions:    make(map[string]*Session),
+		ttl:         ttl,
+		now:         time.Now,
+		maxSessions: maxSessions,
 	}
 }
 
@@ -62,6 +67,22 @@ func (s *SessionStore) Create(userID int64) (string, string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.cleanupLocked()
+	if len(s.sessions) >= s.maxSessions {
+		// Evict the session with earliest expiry
+		var oldestKey string
+		var oldestTime time.Time
+		first := true
+		for k, v := range s.sessions {
+			if first || v.ExpiresAt.Before(oldestTime) {
+				oldestKey = k
+				oldestTime = v.ExpiresAt
+				first = false
+			}
+		}
+		if oldestKey != "" {
+			delete(s.sessions, oldestKey)
+		}
+	}
 	s.sessions[sid] = &Session{
 		UserID:    userID,
 		CSRFToken: csrf,

@@ -26,13 +26,14 @@ var templatesFS embed.FS
 var staticFS embed.FS
 
 type Handler struct {
-	db       *sql.DB
-	service  *bookmark.Service
-	sessions *SessionStore
-	logger   *slog.Logger
-	secure   bool // Secure cookie flag (true in production)
-	tmpl     *template.Template
-	static   http.Handler
+	db           *sql.DB
+	service      *bookmark.Service
+	sessions     *SessionStore
+	logger       *slog.Logger
+	secure       bool // Secure cookie flag (true in production)
+	tmpl         *template.Template
+	static       http.Handler
+	loginLimiter *loginRateLimiter
 }
 
 type Config struct {
@@ -67,12 +68,13 @@ func NewHandler(db *sql.DB, logger *slog.Logger, cfg Config) (*Handler, error) {
 		staticHandler = http.NotFoundHandler()
 	}
 	return &Handler{
-		db:       db,
-		service:  svc,
-		sessions: NewSessionStore(ttl),
-		logger:   logger,
-		secure:   cfg.SecureCookie,
-		tmpl:     tmpl,
-		static:   staticHandler,
+		db:           db,
+		service:      svc,
+		sessions:     NewSessionStore(ttl, 10000),
+		logger:       logger,
+		secure:       cfg.SecureCookie,
+		tmpl:         tmpl,
+		static:       staticHandler,
+		loginLimiter: newLoginRateLimiter(10, time.Minute),
 	}, nil
 }

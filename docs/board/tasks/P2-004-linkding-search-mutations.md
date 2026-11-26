@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `DONE` |
 | Priorytet | `P0` |
 | Owner | Tidepool Alpha Free |
 | Faza | Phase 3 API |

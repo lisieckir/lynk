@@ -4,9 +4,9 @@ Data: 2026-11-26
 
 ## Stan główny
 
-`main` zawiera P2-008 (`7ac47c5`) oraz wcześniejsze zaakceptowane slice'y.
-Release validation P2-007 została wykonana w izolowanym worktree; P2-008
-zostało zintegrowane po niezależnym security review.
+`main` zawiera zamknięte P2-011 (`1bab24d`) oraz wszystkie wcześniejsze
+zaakceptowane slice'y. Finalny release/performance gate, Docker validation,
+security reviews i PO sign-off są zakończone.
 
 ## Zadania
 

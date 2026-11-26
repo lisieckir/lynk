@@ -8,7 +8,7 @@ Właściciel tablicy: PO / koordynator projektu
 `BACKLOG` · `READY` · `IN_PROGRESS` · `BLOCKED` · `REVIEW` · `PO_REVIEW` ·
 `DONE` · `CANCELLED`
 
-## Bieżący sprint: Phase 1 — Project foundation
+## Bieżący sprint: Phase 8 — Performance and release
 
 | ID | Priorytet | Zadanie | Owner | Status | Zależności |
 |---|---:|---|---|---|---|

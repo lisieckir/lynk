@@ -1,7 +1,8 @@
 # Development and toolchain
 
-Status: P2-007 release validation is accepted; P2-008 closes the CORS/OPTIONS
-gap behind an explicit opt-in policy. The versions below were validated by the
+Status: P2-011 final release gate is accepted; P2-008 closes the CORS/OPTIONS
+gap behind an explicit opt-in policy and P2-011 records final performance,
+resource and Docker evidence. The versions below were validated by the
 P1-003 smoke tests (FTS5, WAL, foreign keys, busy timeout and online backup)
 and again by the P2-007 matrix; no driver-version change was made.
 

@@ -71,6 +71,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-010 | Decyzja PO | Netscape import/export jest wymaganiem Definition of Done; bounded CLI i round-trip tests obowiązkowe | PO |
 | 2026-11-26 | P2-010 | Review pending | `043cba0` pełna macierz PASS; niezależny security/correctness review w toku | PO |
 | 2026-11-26 | P2-010 | Request changes | Symlinked-parent DB overwrite HIGH i cumulative field-cap bypass MEDIUM; poprawki zlecone | Big Pickle |
+| 2026-11-26 | P2-010 | Review pending | `9dcd3da` fixes PASS; niezależna re-review w toku | PO |
 
 ## Historia zmian tablicy
 

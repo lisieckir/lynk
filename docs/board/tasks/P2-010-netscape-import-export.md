@@ -49,6 +49,7 @@ network fetches.
 | 2026-11-26 | `IN_PROGRESS` | Hy4 Flash Free | Przydzielono import/export Phase 7 |
 | 2026-11-26 | `REVIEW` | Hy4 Flash Free | `043cba0` implementuje parser, bounded CLI, atomic import i round-trip; niezależny review w toku |
 | 2026-11-26 | `BLOCKED` | Big Pickle | Review REQUEST CHANGES: symlinked-parent DB overwrite (HIGH) and cumulative field-cap bypass (MEDIUM) |
+| 2026-11-26 | `BLOCKED` | Hy4 Flash Free | `9dcd3da` naprawia findings; pełna macierz PASS, ponowny niezależny review w toku |
 
 ## Blockery
 

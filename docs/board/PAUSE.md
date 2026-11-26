@@ -32,6 +32,8 @@ zostało zintegrowane po niezależnym security review.
 
 P2-008 jest zamknięte. Następny brak Definition of Done to web interface;
 potem import/export i backup/restore.
+* **P2-009 — `IN_PROGRESS`**: Iceman Free implementuje server-rendered web
+  interface MVP z sesją, CSRF i owner scoping.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

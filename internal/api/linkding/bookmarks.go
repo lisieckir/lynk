@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/lisieckir/lynk/internal/bookmark"
+	"github.com/lisieckir/lynk/internal/metadata"
 )
 
 // maxRequestBodyBytes bounds JSON bodies before decoding so a hostile client
@@ -337,7 +338,7 @@ func (a *API) createBookmark(w http.ResponseWriter, r *http.Request, userID int6
 	default:
 		writeJSON(w, http.StatusCreated, newBookmarkDTO(created))
 		if a.metaEnq != nil {
-			if !r.URL.Query().Has("disable_scraping") && !r.URL.Query().Has("disable_html_snapshot") {
+			if !r.URL.Query().Has("disable_scraping") {
 				a.metaEnq.Enqueue(created.ID, created.URL)
 			}
 		}
@@ -368,10 +369,7 @@ func (a *API) deleteBookmark(w http.ResponseWriter, r *http.Request, userID, id 
 	}
 }
 
-// checkBookmark serves GET /api/bookmarks/check/. The extension sends
-// `url` and may add `ignore_cache=true`; the flag is accepted and ignored
-// because Lynk keeps no metadata cache and never fetches over the network —
-// metadata stays null until a separate metadata task exists.
+// checkBookmark serves GET /api/bookmarks/check/.
 func (a *API) checkBookmark(w http.ResponseWriter, r *http.Request, userID int64) {
 	rawURL := r.URL.Query().Get("url")
 	if strings.TrimSpace(rawURL) == "" {
@@ -396,9 +394,32 @@ func (a *API) checkBookmark(w http.ResponseWriter, r *http.Request, userID int64
 		return
 	}
 
+	md := metadataDTO{URL: rawURL}
+	// Best-effort safe metadata fetch for check (preserves shape on failure)
+	f := metadata.NewFetcher(metadata.Config{Timeout: 5 * time.Second, ConnectTimeout: 2 * time.Second, MaxRedirects: 2, MaxBytes: 512 * 1024})
+	res, err := f.Fetch(r.Context(), rawURL)
+	if err == nil {
+		title := res.OGTitle
+		if title == "" {
+			title = res.Title
+		}
+		desc := res.OGDescription
+		if desc == "" {
+			desc = res.Description
+		}
+		if title != "" {
+			md.Title = title
+		}
+		if desc != "" {
+			md.Description = desc
+		}
+		if res.PreviewImageURL != "" {
+			md.PreviewImage = res.PreviewImageURL
+		}
+	}
 	writeJSON(w, http.StatusOK, checkDTO{
 		Bookmark: found,
-		Metadata: metadataDTO{URL: rawURL},
+		Metadata: md,
 		AutoTags: []string{},
 	})
 }

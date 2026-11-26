@@ -94,7 +94,7 @@ func newBookmarkDTO(b bookmark.Bookmark) bookmarkDTO {
 	if tags == nil {
 		tags = []string{}
 	}
-	return bookmarkDTO{
+	dto := bookmarkDTO{
 		ID:           b.ID,
 		URL:          b.URL,
 		Title:        b.Title,
@@ -107,6 +107,19 @@ func newBookmarkDTO(b bookmark.Bookmark) bookmarkDTO {
 		DateAdded:    wireStamp(b.DateAdded),
 		DateModified: wireStamp(b.DateModified),
 	}
+	if b.FaviconURL != nil && *b.FaviconURL != "" {
+		dto.FaviconURL = b.FaviconURL
+	}
+	if b.PreviewImageURL != nil && *b.PreviewImageURL != "" {
+		dto.PreviewImageURL = b.PreviewImageURL
+	}
+	if b.Title != "" {
+		dto.WebsiteTitle = b.Title
+	}
+	if b.Description != "" {
+		dto.WebsiteDescription = b.Description
+	}
+	return dto
 }
 
 func newTagDTO(t bookmark.Tag) tagDTO {

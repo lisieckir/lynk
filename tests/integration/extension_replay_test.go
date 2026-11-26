@@ -309,10 +309,16 @@ func TestExtensionSaveAndMergeReplay(t *testing.T) {
 	if saved["is_archived"] != false {
 		t.Errorf("is_archived = %v, want false", saved["is_archived"])
 	}
-	for _, key := range []string{"web_archive_snapshot_url", "favicon_url", "preview_image_url", "website_title", "website_description"} {
+	for _, key := range []string{"web_archive_snapshot_url", "favicon_url", "preview_image_url"} {
 		if saved[key] != nil {
 			t.Errorf("%s = %v, want null", key, saved[key])
 		}
+	}
+	if saved["website_title"] != "Saved title" {
+		t.Errorf("website_title = %v, want Saved title", saved["website_title"])
+	}
+	if saved["website_description"] != "Saved description" {
+		t.Errorf("website_description = %v, want Saved description", saved["website_description"])
 	}
 	id := saved["id"]
 

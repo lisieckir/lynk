@@ -111,6 +111,12 @@ func isBlockedIP(ip net.IP) bool {
 	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast() {
 		return true
 	}
+	// CGNAT/shared address space (including Alibaba 100.100.100.200)
+	if ip4 := ip.To4(); ip4 != nil {
+		if ip4[0] == 100 && ip4[1]&0xC0 == 64 { // 100.64.0.0/10
+			return true
+		}
+	}
 	return false
 }
 
@@ -202,7 +208,7 @@ func (f *Fetcher) Fetch(ctx context.Context, rawURL string) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return Result{}, fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}

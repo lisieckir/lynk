@@ -348,10 +348,16 @@ func TestBookmarkCreateGetListDeleteContract(t *testing.T) {
 	if !reflect.DeepEqual(created["tag_names"], []any{"alpha", "beta"}) {
 		t.Errorf("tag_names = %v, want sorted names", created["tag_names"])
 	}
-	for _, key := range []string{"web_archive_snapshot_url", "favicon_url", "preview_image_url", "website_title", "website_description"} {
+	for _, key := range []string{"web_archive_snapshot_url", "favicon_url", "preview_image_url"} {
 		if created[key] != nil {
 			t.Errorf("%s = %v, want null", key, created[key])
 		}
+	}
+	if created["website_title"] != "First" {
+		t.Errorf("website_title = %v, want First", created["website_title"])
+	}
+	if created["website_description"] != "Desc" {
+		t.Errorf("website_description = %v, want Desc", created["website_description"])
 	}
 	if created["is_archived"] != false || created["unread"] != true || created["shared"] != true {
 		t.Errorf("flags = %v", created)

@@ -54,22 +54,32 @@ type Bookmark struct {
 }
 
 // CreateInput contains the writable fields for create/duplicate-merge.
+// DateAdded and DateModified are pointers because Linkding's create uses them
+// both as "set this value" and as "unset means server clock"; a nil pointer
+// selects the current time. On the duplicate-merge path Linkding only copies
+// title, description, notes, unread and shared into the stored row, so
+// IsArchived, DateAdded and DateModified are applied on insert only and the
+// merge keeps the stored values (date_modified is bumped to now by merge).
 type CreateInput struct {
 	URL, Title, Description, Notes string
 	Tags                           []string
+	IsArchived                     bool
 	Unread, Shared                 bool
+	DateAdded, DateModified        *time.Time
 }
 
 // UpdateInput uses pointers to distinguish omitted fields from explicit zero values.
 type UpdateInput struct {
-	URL         *string
-	Title       *string
-	Description *string
-	Notes       *string
-	Tags        *[]string
-	IsArchived  *bool
-	Unread      *bool
-	Shared      *bool
+	URL          *string
+	Title        *string
+	Description  *string
+	Notes        *string
+	Tags         *[]string
+	IsArchived   *bool
+	Unread       *bool
+	Shared       *bool
+	DateAdded    *time.Time
+	DateModified *time.Time
 }
 
 type Service struct {
@@ -106,7 +116,10 @@ func (s *Service) Create(ctx context.Context, userID int64, in CreateInput) (Boo
 	now := s.now().UTC()
 	switch {
 	case err == nil:
-		// Linkding's duplicate POST merges the submitted values into the current row.
+		// Linkding's duplicate POST merges the submitted values into the
+		// current row: _merge_bookmark_data copies only title, description,
+		// notes, unread and shared, so the stored archive state and date_added
+		// survive an extension edit while date_modified is bumped to now.
 		_, err = tx.ExecContext(ctx, `UPDATE bookmarks SET url=?, title=?, description=?, notes=?, unread=?, shared=?, date_modified=? WHERE id=? AND user_id=?`,
 			in.URL, in.Title, in.Description, in.Notes, in.Unread, in.Shared, stamp(now), existing.ID, userID)
 		if err != nil {
@@ -117,8 +130,17 @@ func (s *Service) Create(ctx context.Context, userID int64, in CreateInput) (Boo
 		}
 		existing, err = getByID(ctx, tx, userID, existing.ID)
 	case errors.Is(err, sql.ErrNoRows):
-		result, execErr := tx.ExecContext(ctx, `INSERT INTO bookmarks(user_id,url,url_normalized,title,description,notes,unread,shared,date_added,date_modified)
-			VALUES(?,?,?,?,?,?,?,?,?,?)`, userID, in.URL, normalized, in.Title, in.Description, in.Notes, in.Unread, in.Shared, stamp(now), stamp(now))
+		// Linkding only fills date_added/date_modified when the client did not
+		// send them, so clients can sync existing dates through the REST API.
+		dateAdded, dateModified := now, now
+		if in.DateAdded != nil {
+			dateAdded = in.DateAdded.UTC()
+		}
+		if in.DateModified != nil {
+			dateModified = in.DateModified.UTC()
+		}
+		result, execErr := tx.ExecContext(ctx, `INSERT INTO bookmarks(user_id,url,url_normalized,title,description,notes,is_archived,unread,shared,date_added,date_modified)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?)`, userID, in.URL, normalized, in.Title, in.Description, in.Notes, in.IsArchived, in.Unread, in.Shared, stamp(dateAdded), stamp(dateModified))
 		if execErr != nil {
 			return Bookmark{}, execErr
 		}
@@ -209,8 +231,19 @@ func (s *Service) update(ctx context.Context, userID, id int64, in UpdateInput, 
 		current.Shared = *in.Shared
 	}
 	now := s.now().UTC()
-	_, err = tx.ExecContext(ctx, `UPDATE bookmarks SET title=?,description=?,notes=?,is_archived=?,unread=?,shared=?,date_modified=? WHERE id=? AND user_id=?`,
-		current.Title, current.Description, current.Notes, current.IsArchived, current.Unread, current.Shared, stamp(now), id, userID)
+	// date_added only changes when the client sends it. date_modified defaults
+	// to the current time — Linkding's update service always stamps it — and a
+	// value the client sends explicitly is persisted as-is; see
+	// docs/api-compatibility.md for that documented difference.
+	dateAdded, dateModified := current.DateAdded, now
+	if in.DateAdded != nil {
+		dateAdded = in.DateAdded.UTC()
+	}
+	if in.DateModified != nil {
+		dateModified = in.DateModified.UTC()
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE bookmarks SET title=?,description=?,notes=?,is_archived=?,unread=?,shared=?,date_added=?,date_modified=? WHERE id=? AND user_id=?`,
+		current.Title, current.Description, current.Notes, current.IsArchived, current.Unread, current.Shared, stamp(dateAdded), stamp(dateModified), id, userID)
 	if err != nil {
 		return Bookmark{}, err
 	}
@@ -258,13 +291,35 @@ func (s *Service) GetByURL(ctx context.Context, userID int64, rawURL string) (Bo
 	return b, err
 }
 
-// ListTags returns all tags owned by userID in a stable name order. It is the
-// read side used by /api/tags/ and never includes tags from other users.
-func (s *Service) ListTags(ctx context.Context, userID int64) ([]Tag, error) {
+// TagPage is one window of tags plus the total number of tags the user owns.
+type TagPage struct {
+	Count  int
+	Items  []Tag
+	Limit  int
+	Offset int
+}
+
+// ListTags returns one page of tags owned by userID in a stable name order,
+// bounded like the bookmark list: limit <= 0 selects DefaultLimit and a
+// negative offset reads as zero. It is the read side used by /api/tags/ and
+// never includes tags from other users.
+func (s *Service) ListTags(ctx context.Context, userID int64, limit, offset int) (TagPage, error) {
+	if limit <= 0 {
+		limit = DefaultLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	var count int
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT count(*) FROM tags WHERE user_id = ?`, userID).Scan(&count); err != nil {
+		return TagPage{}, err
+	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, user_id, name, date_added FROM tags WHERE user_id = ? ORDER BY name COLLATE BINARY, id`, userID)
+		`SELECT id, user_id, name, date_added FROM tags WHERE user_id = ?
+		 ORDER BY name COLLATE BINARY, id LIMIT ? OFFSET ?`, userID, limit, offset)
 	if err != nil {
-		return nil, err
+		return TagPage{}, err
 	}
 	var tags []Tag
 	for rows.Next() {
@@ -272,30 +327,31 @@ func (s *Service) ListTags(ctx context.Context, userID int64) ([]Tag, error) {
 		var added string
 		if err := rows.Scan(&t.ID, &t.UserID, &t.Name, &added); err != nil {
 			_ = rows.Close()
-			return nil, err
+			return TagPage{}, err
 		}
 		t.DateAdded, err = time.Parse(time.RFC3339Nano, added)
 		if err != nil {
 			_ = rows.Close()
-			return nil, err
+			return TagPage{}, err
 		}
 		tags = append(tags, t)
 	}
 	if err := rows.Err(); err != nil {
 		_ = rows.Close()
-		return nil, err
+		return TagPage{}, err
 	}
 	if err := rows.Close(); err != nil {
-		return nil, err
+		return TagPage{}, err
 	}
 	if tags == nil {
 		tags = []Tag{}
 	}
-	return tags, nil
+	return TagPage{Count: count, Items: tags, Limit: limit, Offset: offset}, nil
 }
 
 // DefaultLimit matches Linkding's REST_FRAMEWORK PAGE_SIZE setting. It is
-// applied when a list or search request omits or sends an invalid limit.
+// applied when a bookmark or tag list request omits or sends an invalid
+// limit, which is also how Linkding paginates GET /api/tags/.
 const DefaultLimit = 100
 
 // PageOptions bounds one list or search page.

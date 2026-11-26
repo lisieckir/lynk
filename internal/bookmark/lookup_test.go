@@ -30,9 +30,13 @@ func TestGetByURLAndListTags(t *testing.T) {
 		t.Errorf("blank GetByURL error = %v, want ErrInvalidBookmark", err)
 	}
 
-	tags, err := s.ListTags(ctx, 1)
+	page, err := s.ListTags(ctx, 1, 0, 0)
 	if err != nil {
 		t.Fatalf("ListTags: %v", err)
+	}
+	tags := page.Items
+	if page.Count != 2 || page.Limit != DefaultLimit || page.Offset != 0 {
+		t.Errorf("ListTags page = count %d limit %d offset %d, want 2/%d/0", page.Count, page.Limit, page.Offset, DefaultLimit)
 	}
 	if len(tags) != 2 || tags[0].Name != "alpha" || tags[1].Name != "beta" {
 		t.Errorf("ListTags = %+v, want alpha, beta", tags)
@@ -42,11 +46,28 @@ func TestGetByURLAndListTags(t *testing.T) {
 			t.Errorf("tag = %+v, want owner id 1 and parsed date", tag)
 		}
 	}
-	other, err := s.ListTags(ctx, 2)
+
+	// Windowing: limit/offset cut the stable name order without changing the
+	// total count.
+	firstPage, err := s.ListTags(ctx, 1, 1, 0)
+	if err != nil {
+		t.Fatalf("ListTags limit=1: %v", err)
+	}
+	if firstPage.Count != 2 || len(firstPage.Items) != 1 || firstPage.Items[0].Name != "alpha" {
+		t.Errorf("ListTags limit=1 = %+v, want count 2 and only alpha", firstPage)
+	}
+	secondPage, err := s.ListTags(ctx, 1, 1, 1)
+	if err != nil {
+		t.Fatalf("ListTags offset=1: %v", err)
+	}
+	if secondPage.Count != 2 || len(secondPage.Items) != 1 || secondPage.Items[0].Name != "beta" {
+		t.Errorf("ListTags offset=1 = %+v, want count 2 and only beta", secondPage)
+	}
+	other, err := s.ListTags(ctx, 2, 0, 0)
 	if err != nil {
 		t.Fatalf("ListTags for other user: %v", err)
 	}
-	if other == nil || len(other) != 0 {
+	if other.Items == nil || len(other.Items) != 0 || other.Count != 0 {
 		t.Errorf("ListTags for other user = %+v, want empty non-nil slice", other)
 	}
 }

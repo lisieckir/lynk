@@ -1,9 +1,11 @@
 # Linkding API compatibility research
 
 Status: Phase 0 research plus P2-003 API foundation implemented; P2-004
-search (`q`, FTS5), limit/offset pagination and the update/archive mutations
-below are implemented and verified by `make test-compat`. Remaining
-unimplemented areas: metadata fetching, asset/bundle routes and newer
+search (`q`, FTS5), limit/offset pagination and the update/archive mutations;
+and P2-005 extension request replay, writable `is_archived`/`date_added`/
+`date_modified` and `GET /api/tags/` pagination. All of it is verified by
+`make test-compat` and `make test-integration`. Remaining unimplemented
+areas: metadata fetching, asset/bundle routes and newer
 Linkding search filters such as `sort`, `unread`, `shared`,
 `modified_since`/`added_since`. The endpoints covered by the foundation are
 listed below; metadata fetching, asset/bundle routes and newer filters
@@ -45,14 +47,14 @@ time. This does not alter the wire contract.
 | `GET /api/bookmarks/` | required | `q`, `limit`, `offset`, `modified_since`, `added_since`, `bundle`; current Linkding search also understands filters such as `unread`, `shared`, `sort` | none | `200`: paginated object `{count,next,previous,results}` | Yes: search and connection test |
 | `GET /api/bookmarks/archived/` | required | Same list/search parameters | none | `200`: same pagination shape, archived rows only | Not directly |
 | `GET /api/bookmarks/{id}/` | required | none | none | `200`: bookmark object; `404` for inaccessible/missing row | Yes, only for older Linkding compatibility after `/check/` |
-| `GET /api/bookmarks/check/` | required | required `url`; source also supports `ignore_cache=true` | none | `200`: `{bookmark,metadata,auto_tags}`; `bookmark` is object or `null` | Yes, central to popup, badge and metadata |
+| `GET /api/bookmarks/check/` | required | required `url`; `ignore_cache=true` is accepted and ignored (Lynk keeps no metadata cache) | none | `200`: `{bookmark,metadata,auto_tags}`; `bookmark` is object or `null` | Yes, central to popup, badge and metadata |
 | `POST /api/bookmarks/` | required | presence of `disable_scraping` disables scraping; presence of `disable_html_snapshot` disables snapshot scheduling | bookmark JSON | `201`: bookmark object; `400`: DRF validation object; auth/permission failures as below | Yes, with `disable_scraping`; optionally `disable_html_snapshot` |
 | `PUT /api/bookmarks/{id}/` | required | none | bookmark fields; `url` is the only required field for PUT | `200`: bookmark object; `400` validation; `404` missing/inaccessible | No current extension call |
 | `PATCH /api/bookmarks/{id}/` | required | none | partial bookmark fields | `200`: bookmark object; `400` validation; `404` missing/inaccessible | No current extension call |
 | `DELETE /api/bookmarks/{id}/` | required | none | none | `204`, empty body; `404` missing/inaccessible | Yes |
 | `POST /api/bookmarks/{id}/archive/` | required | none | none | `204`, empty body | No current extension call |
 | `POST /api/bookmarks/{id}/unarchive/` | required | none | none | `204`, empty body | No current extension call |
-| `GET /api/tags/` | required | `limit`, `offset` (extension uses `limit=5000`) | none | `200`: paginated `{count,next,previous,results}` | Yes |
+| `GET /api/tags/` | required | `limit`, `offset` (extension uses `limit=5000`) | none | `200`: paginated `{count,next,previous,results}`; `limit`/`offset` honoured with the default page size 100 | Yes |
 | `GET /api/user/profile/` | required | none | none | `200`: profile object | Yes, best-effort/background |
 | `GET /api/bookmarks/{id}/assets/` and other asset routes | required | route-specific | multipart for upload | documented by Linkding; not required for current extension | No |
 | `GET/POST/... /api/bundles/` | required | route-specific | bundle JSON | documented by Linkding; not required for current extension | No |
@@ -95,6 +97,42 @@ On create/update the client may send `url`, `title`, `description`, `notes`,
 `date_modified` as supported by the serializer. `tag_names` is an array of
 strings. Read-only generated fields must not be accepted as authoritative
 input.
+
+### Writable archive state and dates (P2-005)
+
+Verified in `bookmarks/api/serializers.py`: `is_archived` is an ordinary model
+field and `date_added`/`date_modified` are declared as optional
+`DateTimeField`s outside `read_only_fields`, so all three are writable on
+create, `PUT` and `PATCH`. Lynk implements that parity:
+
+* create persists `is_archived`, `date_added` and `date_modified` when they are
+  sent; omitted values fall back to `false` and the server clock. Linkding
+  fills the dates only when the client did not send them, which is how clients
+  sync existing dates over the REST API, and Lynk does the same;
+* `PUT`/`PATCH` persist whichever of the three fields the request carries;
+  an omitted `date_added` or `is_archived` keeps its stored value and an
+  omitted `date_modified` falls back to the server clock;
+* values are validated before the database is touched. A malformed value is a
+  field-keyed `400` keyed by `date_added`, `date_modified` or `is_archived`
+  and leaves the stored row unchanged. The accepted shapes are the ISO-8601
+  forms `django.utils.dateparse.parse_datetime` accepts: a `T` or space
+  separator, an optional fractional second and an optional zone
+  (`2000-01-01T00:00:00Z`, `2000-01-01T00:00:00.123456+02:00`,
+  `2000-01-01 00:00:00`). A bare date, an empty string or a wrong JSON type is
+  rejected, matching DRF;
+* an omitted field or a JSON `null` means "not supplied".
+
+Two deliberate differences from the pinned Linkding revision:
+
+* Linkding's `update_bookmark` service restamps `date_modified` with the
+  server clock on every `PUT`/`PATCH`, so a client-supplied value is validated
+  and then discarded. Lynk persists a supplied `date_modified` and only uses
+  the server clock when the field is omitted.
+* On the duplicate-POST merge Linkding copies only `title`, `description`,
+  `notes`, `unread` and `shared` into the stored row, so a submitted
+  `is_archived` or `date_added` is validated but ignored there and
+  `date_modified` becomes "now". Lynk matches that behaviour, which keeps an
+  extension edit from un-archiving a bookmark or rewriting its creation date.
 
 ### URL normalization and validation
 
@@ -169,6 +207,11 @@ Linkding uses DRF `LimitOffsetPagination`, default page size 100, with:
 Lynk must preserve the keys and nullability. The extension only consumes
 `results`, but API compatibility tests must verify all pagination fields.
 
+The same envelope and rules apply to `GET /api/tags/` (P2-005): `count` is the
+total number of tags the user owns, the default page size is 100, and the
+extension's `limit=5000` therefore returns the whole tag set in a single page
+with `next` and `previous` set to `null`.
+
 `q` is server-side search, not a substring-only contract. Lynk's FTS query
 implementation may differ internally, but must cover URL, title,
 description/notes and tags and accept extension queries without requiring
@@ -203,7 +246,7 @@ captured in compatibility tests before intentionally reproducing it. At
 minimum Lynk must preserve status, JSON content type and field-keyed
 validation errors used by the extension.
 
-## Implemented API (P2-003 and P2-004)
+## Implemented API (P2-003, P2-004 and P2-005)
 
 `internal/api/linkding` serves the canonical trailing-slash routes
 `GET /api/user/profile/`, `GET /api/tags/`, `GET /api/bookmarks/check/`,
@@ -225,12 +268,36 @@ ANDed, and only the final token is treated as a prefix so partial words from
 the extension omnibox still match. FTS metacharacters in the query are inert.
 A query with no word characters matches nothing.
 
-`GET /api/tags/` currently returns the full owned tag list; `limit`/`offset`
-parsing for tags is not yet wired. Check returns the documented
-`{bookmark,metadata,auto_tags}` shape with bounded, null metadata and no
-network fetch. Field-keyed `400` responses, `401`, owner-scoped `404`, `201`
-and empty `204` are covered by `httptest` tests against a real migrated SQLite
-database; `make test-compat` runs those tests.
+`GET /api/tags/` returns the owned tag list with the same
+`{count,next,previous,results}` envelope, `limit`/`offset` parsing and default
+page size of 100 as the bookmark lists: `count` is the total number of owned
+tags, `next`/`previous` are request-derived and `null` at the ends of the
+result set, and the extension's `limit=5000` loads the whole set in one page.
+Check returns the documented `{bookmark,metadata,auto_tags}` shape with bounded,
+null metadata, `auto_tags: []` and no network fetch; `ignore_cache` is accepted
+and ignored because Lynk keeps no metadata cache. Field-keyed `400` responses,
+`401`, owner-scoped `404`, `201` and empty `204` are covered by `httptest`
+tests against a real migrated SQLite database; `make test-compat` runs those
+tests.
+
+### Extension request replay (P2-005)
+
+`tests/integration/` replays the pinned extension revision's own request
+sequence in-process: a real migrated SQLite database from `internal/database`
+plus `httptest`, with no network, no browser and no metadata fetcher.
+`make test-integration` runs the package. The replayed flows are:
+
+| Test | Replayed requests |
+|---|---|
+| `TestExtensionPopupInitializationReplay` | `401` without a token, `GET /api/user/profile/`, `GET /api/tags/?limit=5000`, `GET /api/bookmarks/check/?url=...&ignore_cache=true` (and the same check without the flag), `GET /api/bookmarks/{id}/` |
+| `TestExtensionSaveAndMergeReplay` | `POST /api/bookmarks/?disable_scraping&disable_html_snapshot`, then the same POST used as the extension's edit: duplicate merge, still `201`, same `id`, stored archive state and `date_added` preserved |
+| `TestExtensionSearchAndConnectionReplay` | `GET /api/bookmarks/?q=...&limit=5` omnibox search with `next` carrying `q`/`limit`/`offset`, and the `GET /api/bookmarks/?limit=1` connection test |
+| `TestExtensionDeleteReplay` | `DELETE /api/bookmarks/{id}/` → `204` with an empty body, then `404` for detail and for a repeat delete |
+
+Field parity (`is_archived`, `date_added`, `date_modified` on create/PUT/PATCH
+with validation and persistence) and `GET /api/tags/` `limit`/`offset`
+pagination are covered by the `internal/api/linkding` tests that
+`make test-compat` runs.
 
 ## Explicit non-requirements for Phase 1/3
 
@@ -238,6 +305,19 @@ The current official extension does not call archive, unarchive, PUT, PATCH,
 asset or bundle endpoints. They remain part of the Linkding-compatible API
 scope from `SPEC.md`, but they are not extension blockers. Public shared
 bookmark routes are also not part of token-authenticated extension behavior.
+
+Also explicitly deferred, and visible in the API as documented no-ops:
+
+* **metadata fetching** — `check` never performs a network request, so
+  `metadata.title`/`description`/`preview_image` are `null`, `auto_tags` is
+  always `[]` and `ignore_cache` is accepted and ignored. Real fetching is
+  P2-006 and carries a mandatory security review;
+* **SingleFile HTML snapshots, assets and bundles** — no snapshot is
+  scheduled, so `disable_html_snapshot` (like `disable_scraping`) is accepted
+  and ignored, and no asset/bundle route exists;
+* **browser automation** — replay plus a manual Firefox run is the E2E gate;
+  Chrome stays explicitly unverified when the environment has no tooling for
+  it.
 
 ## Open compatibility risks
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lisieckir/lynk/internal/bookmark"
 )
@@ -18,27 +19,32 @@ const maxRequestBodyBytes = 1 << 20
 // createBookmarkRequest only contains fields Linkding clients send on save.
 // Unknown fields (including generated ones) are ignored, never trusted.
 type createBookmarkRequest struct {
-	URL         *string   `json:"url"`
-	Title       *string   `json:"title"`
-	Description *string   `json:"description"`
-	Notes       *string   `json:"notes"`
-	TagNames    *[]string `json:"tag_names"`
-	Unread      *bool     `json:"unread"`
-	Shared      *bool     `json:"shared"`
+	URL          *string   `json:"url"`
+	Title        *string   `json:"title"`
+	Description  *string   `json:"description"`
+	Notes        *string   `json:"notes"`
+	TagNames     *[]string `json:"tag_names"`
+	IsArchived   *bool     `json:"is_archived"`
+	Unread       *bool     `json:"unread"`
+	Shared       *bool     `json:"shared"`
+	DateAdded    *string   `json:"date_added"`
+	DateModified *string   `json:"date_modified"`
 }
 
 // updateBookmarkRequest mirrors the writable fields of the Linkding bookmark
 // serializer for PUT/PATCH. Pointers distinguish omitted fields from
 // explicit zero values, so PATCH stays partial and PUT stays "url required".
 type updateBookmarkRequest struct {
-	URL         *string   `json:"url"`
-	Title       *string   `json:"title"`
-	Description *string   `json:"description"`
-	Notes       *string   `json:"notes"`
-	TagNames    *[]string `json:"tag_names"`
-	IsArchived  *bool     `json:"is_archived"`
-	Unread      *bool     `json:"unread"`
-	Shared      *bool     `json:"shared"`
+	URL          *string   `json:"url"`
+	Title        *string   `json:"title"`
+	Description  *string   `json:"description"`
+	Notes        *string   `json:"notes"`
+	TagNames     *[]string `json:"tag_names"`
+	IsArchived   *bool     `json:"is_archived"`
+	Unread       *bool     `json:"unread"`
+	Shared       *bool     `json:"shared"`
+	DateAdded    *string   `json:"date_added"`
+	DateModified *string   `json:"date_modified"`
 }
 
 // pageOptionsFromRequest translates the Linkding limit/offset parameters into
@@ -70,6 +76,54 @@ func parseOffsetParam(raw string) int {
 		return 0
 	}
 	return v
+}
+
+// datetimeFormatMessage mirrors DRF's DateTimeField validation error. The
+// extension displays the field-keyed 400 body verbatim, so the message names
+// the accepted wire format.
+const datetimeFormatMessage = "Datetime has wrong format. Use one of these formats instead: 2000-01-01T00:00:00Z."
+
+// wireDateLayouts are the ISO-8601 shapes Linkding's DateTimeField accepts
+// through django.utils.dateparse.parse_datetime: a date and a time separated
+// by "T" or a space, an optional fractional second (time.Parse accepts it
+// after the seconds field even when the layout omits it) and an optional
+// timezone, which time.RFC3339 covers for the "Z" and numeric offset forms.
+// A bare date is rejected just like parse_datetime, and a timestamp without a
+// zone is read as UTC because Linkding runs with TIME_ZONE=UTC.
+var wireDateLayouts = []string{
+	time.RFC3339,
+	"2006-01-02T15:04:05",
+	"2006-01-02 15:04:05",
+}
+
+func parseWireDate(raw string) (time.Time, bool) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return time.Time{}, false
+	}
+	for _, layout := range wireDateLayouts {
+		if parsed, err := time.Parse(layout, trimmed); err == nil {
+			return parsed.UTC(), true
+		}
+	}
+	return time.Time{}, false
+}
+
+// parseOptionalDate decodes one optional date field of a bookmark request. A
+// malformed value writes the field-keyed 400 and returns ok=false so the
+// caller stops before touching the database; an omitted field (a missing key
+// or JSON null) yields a nil pointer and no error, leaving the stored value
+// or the server clock in charge.
+func parseOptionalDate(w http.ResponseWriter, field string, raw *string) (*time.Time, bool) {
+	if raw == nil {
+		return nil, true
+	}
+	parsed, ok := parseWireDate(*raw)
+	if !ok {
+		writeValidation(w, field, datetimeFormatMessage)
+		return nil, false
+	}
+	return &parsed, true
 }
 
 // pageLinks mirrors DRF LimitOffsetPagination: next/previous are
@@ -146,15 +200,25 @@ func (a *API) updateBookmark(w http.ResponseWriter, r *http.Request, userID, id 
 			}
 		}
 	}
+	dateAdded, ok := parseOptionalDate(w, "date_added", req.DateAdded)
+	if !ok {
+		return
+	}
+	dateModified, ok := parseOptionalDate(w, "date_modified", req.DateModified)
+	if !ok {
+		return
+	}
 	in := bookmark.UpdateInput{
-		URL:         req.URL,
-		Title:       req.Title,
-		Description: req.Description,
-		Notes:       req.Notes,
-		Tags:        req.TagNames,
-		IsArchived:  req.IsArchived,
-		Unread:      req.Unread,
-		Shared:      req.Shared,
+		URL:          req.URL,
+		Title:        req.Title,
+		Description:  req.Description,
+		Notes:        req.Notes,
+		Tags:         req.TagNames,
+		IsArchived:   req.IsArchived,
+		Unread:       req.Unread,
+		Shared:       req.Shared,
+		DateAdded:    dateAdded,
+		DateModified: dateModified,
 	}
 	var updated bookmark.Bookmark
 	var err error
@@ -202,6 +266,12 @@ func (a *API) setBookmarkArchived(w http.ResponseWriter, r *http.Request, userID
 	}
 }
 
+// createBookmark serves POST /api/bookmarks/. The extension sends
+// ?disable_scraping[&disable_html_snapshot]: both are presence-checked query
+// parameters that Lynk accepts and ignores, because there is no scraper,
+// snapshot scheduler or network fetcher — scraping is always off and no
+// snapshot is ever scheduled. Their presence must not change the 201
+// contract.
 func (a *API) createBookmark(w http.ResponseWriter, r *http.Request, userID int64) {
 	req, ok := decodeCreateRequest(w, r)
 	if !ok {
@@ -227,7 +297,21 @@ func (a *API) createBookmark(w http.ResponseWriter, r *http.Request, userID int6
 			}
 		}
 	}
-	in := bookmark.CreateInput{URL: url, Tags: tags}
+	dateAdded, ok := parseOptionalDate(w, "date_added", req.DateAdded)
+	if !ok {
+		return
+	}
+	dateModified, ok := parseOptionalDate(w, "date_modified", req.DateModified)
+	if !ok {
+		return
+	}
+	in := bookmark.CreateInput{
+		URL:          url,
+		Tags:         tags,
+		IsArchived:   req.IsArchived != nil && *req.IsArchived,
+		DateAdded:    dateAdded,
+		DateModified: dateModified,
+	}
 	if req.Title != nil {
 		in.Title = *req.Title
 	}
@@ -279,6 +363,10 @@ func (a *API) deleteBookmark(w http.ResponseWriter, r *http.Request, userID, id 
 	}
 }
 
+// checkBookmark serves GET /api/bookmarks/check/. The extension sends
+// `url` and may add `ignore_cache=true`; the flag is accepted and ignored
+// because Lynk keeps no metadata cache and never fetches over the network —
+// metadata stays null until a separate metadata task exists.
 func (a *API) checkBookmark(w http.ResponseWriter, r *http.Request, userID int64) {
 	rawURL := r.URL.Query().Get("url")
 	if strings.TrimSpace(rawURL) == "" {

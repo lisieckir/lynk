@@ -63,7 +63,17 @@ readiness timeouts, typed-nil checkers, response redaction, canonical `/health`
 versus `/health/` routing, and cleanup paths that attempt database close even
 after shutdown or serve errors. P2-002 adds real SQLite auth tests for token
 generation/digest lookup, revocation, CLI bootstrap and HTTP middleware.
-Linkding API compatibility tests are deferred to the next task.
+P2-003/P2-004 add the Linkding API compatibility tests in
+`internal/api/linkding`, run by `make test-compat`, covering routing,
+authentication, the bookmark/tag/profile/check/search/pagination contracts and
+the update, archive and delete mutations.
+
+P2-005 adds `tests/integration/`, the extension request replay suite run by
+`make test-integration`. Both suites drive a real migrated SQLite database
+from `internal/database` through `httptest` handlers — never a mocked store
+and never a live port. The Makefile target runs `go test ./tests/integration/...`
+whenever the directory exists, so the package is part of `go test ./...`,
+`go test -race ./...` and `make check` as well.
 
 ## Phase 1 validation (2026-11-25)
 
@@ -131,3 +141,25 @@ and the 98,304-byte SQLite database remained in the named `lynk_lynk_data`
 volume, and the container returned healthy again. `make check` without the
 lint now passes without a waiver. Static Dockerfile/Compose inspection was not
 used as a substitute for building and running the container.
+
+## P2-005 validation (2026-11-26)
+
+Validated in the Linux AMD64 worktree with Go `go1.27.4-X:nodwarf5` and the
+pinned `golangci-lint v2.15.0` kept outside the repository at
+`/tmp/opencode/golangci-lint-v2.15.0/golangci-lint-2.15.0-linux-amd64/golangci-lint`
+(same path and version as P1-007; `git status` stayed clean of tooling).
+
+| Check | Result |
+|---|---|
+| `gofmt -l .` | PASS; no files reported |
+| `go vet ./...`, `go build ./...` | PASS |
+| `go test ./...` | PASS; `tests/integration` runs with the rest of the module |
+| `go test -race ./...` | PASS, including `tests/integration` |
+| `make test-compat` | PASS; `internal/api/linkding` replay of the field-parity and tag-pagination contracts |
+| `make test-integration` | PASS; runs `go test ./tests/integration/...` (4 extension replay tests) |
+| `make LINT_TOOL=<pinned golangci-lint v2.15.0> check` | PASS; fmt, vet, lint (0 issues), test |
+| `go mod tidy -diff`, `go mod verify` | PASS; no diff, all modules verified |
+
+`make test-integration` no longer reports a missing directory: it executes the
+`tests/integration` package whenever it exists, and a failing replay test
+fails the target.

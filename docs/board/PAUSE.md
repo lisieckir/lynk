@@ -31,6 +31,8 @@ metadata extraction, z obowiązkowym security review i osobnym PO_REVIEW.
 
 * **P2-006 — `DONE`**: SSRF-safe metadata fetcher, worker lifecycle,
   persistence/check mapping i security fixes zostały zintegrowane po APPROVE.
+* **P2-007 — `IN_PROGRESS`**: Big Pickle wykonuje release/E2E i Docker
+  validation.
 
 ## Decyzje P2-002
 

@@ -92,19 +92,13 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-func buildHandler(db *sql.DB, api http.Handler, timeout time.Duration, opts cors.Options, logger *slog.Logger, secureCookies bool) http.Handler {
+func buildHandler(db *sql.DB, api http.Handler, timeout time.Duration, opts cors.Options, logger *slog.Logger, webCfg web.Config) http.Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	mux := handlerWithChecker(db, timeout)
 	// Mount web UI (outside /api, outside /health)
-	webHandler, err := web.NewHandler(db, logger, web.Config{
-		SecureCookie:         secureCookies,
-		LoginRateLimitMax:    10,
-		LoginRateLimitWindow: time.Minute,
-		WebMaxSessions:       10000,
-		TrustProxyHeaders:    false,
-	})
+	webHandler, err := web.NewHandler(db, logger, webCfg)
 	if err != nil {
 		logger.Error("failed to create web handler", "error", err)
 	} else {
@@ -127,7 +121,7 @@ func buildHandler(db *sql.DB, api http.Handler, timeout time.Duration, opts cors
 // public health route outside that wrapper. Invalid options fail closed: no
 // browser origin receives CORS headers and the API keeps its auth contract.
 func HandlerWithAPIAndCORS(db *sql.DB, api http.Handler, timeout time.Duration, opts cors.Options, logger *slog.Logger) http.Handler {
-	return buildHandler(db, api, timeout, opts, logger, false)
+	return buildHandler(db, api, timeout, opts, logger, web.Config{SecureCookie: false, LoginRateLimitMax: 10, LoginRateLimitWindow: time.Minute, WebMaxSessions: 10000, TrustProxyHeaders: false})
 }
 
 func New(cfg Config, db *sql.DB) *http.Server {
@@ -139,7 +133,14 @@ func NewWithLogger(cfg Config, db *sql.DB, logger *slog.Logger) *http.Server {
 		logger = slog.Default()
 	}
 	api := linkding.NewHandler(db, logger)
-	handler := buildHandler(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger, cfg.SecureCookies)
+	webCfg := web.Config{
+		SecureCookie:         cfg.SecureCookies,
+		LoginRateLimitMax:    cfg.LoginRateLimitMax,
+		LoginRateLimitWindow: cfg.LoginRateLimitWindow,
+		WebMaxSessions:       cfg.WebMaxSessions,
+		TrustProxyHeaders:    cfg.TrustProxyHeaders,
+	}
+	handler := buildHandler(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger, webCfg)
 	srv := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           handler,
@@ -196,7 +197,14 @@ func Serve(ctx context.Context, cfg Config, ln net.Listener, db *sql.DB, logger 
 	metaWorker.Start(workerCtx, 2)
 
 	api := linkding.NewHandlerWithMetadata(db, logger, &metaEnqAdapter{w: metaWorker})
-	handler := buildHandler(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger, cfg.SecureCookies)
+	webCfg := web.Config{
+		SecureCookie:         cfg.SecureCookies,
+		LoginRateLimitMax:    cfg.LoginRateLimitMax,
+		LoginRateLimitWindow: cfg.LoginRateLimitWindow,
+		WebMaxSessions:       cfg.WebMaxSessions,
+		TrustProxyHeaders:    cfg.TrustProxyHeaders,
+	}
+	handler := buildHandler(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout), cfg.CORS, logger, webCfg)
 	srv := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           handler,

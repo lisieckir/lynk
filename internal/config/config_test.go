@@ -167,6 +167,31 @@ func TestLoadFromValidValues(t *testing.T) {
 				t.Errorf("CORS.MaxAgeSeconds = %d", c.CORS.MaxAgeSeconds)
 			}
 		}},
+		{"login rate limit max", map[string]string{"LYNK_LOGIN_RATE_LIMIT_MAX": "5"}, func(t *testing.T, c Config) {
+			if c.LoginRateLimitMax != 5 {
+				t.Errorf("LoginRateLimitMax = %d", c.LoginRateLimitMax)
+			}
+		}},
+		{"login rate limit window", map[string]string{"LYNK_LOGIN_RATE_LIMIT_WINDOW": "30s"}, func(t *testing.T, c Config) {
+			if c.LoginRateLimitWindow != 30*time.Second {
+				t.Errorf("LoginRateLimitWindow = %v", c.LoginRateLimitWindow)
+			}
+		}},
+		{"web max sessions", map[string]string{"LYNK_WEB_MAX_SESSIONS": "100"}, func(t *testing.T, c Config) {
+			if c.WebMaxSessions != 100 {
+				t.Errorf("WebMaxSessions = %d", c.WebMaxSessions)
+			}
+		}},
+		{"trust proxy headers true", map[string]string{"LYNK_TRUST_PROXY_HEADERS": "true"}, func(t *testing.T, c Config) {
+			if !c.TrustProxyHeaders {
+				t.Error("expected TrustProxyHeaders true")
+			}
+		}},
+		{"trust proxy headers false", map[string]string{"LYNK_TRUST_PROXY_HEADERS": "false"}, func(t *testing.T, c Config) {
+			if c.TrustProxyHeaders {
+				t.Error("expected TrustProxyHeaders false")
+			}
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

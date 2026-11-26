@@ -131,3 +131,18 @@ func TestSecurityHeaders(t *testing.T) {
 		t.Errorf("missing CSP")
 	}
 }
+
+func TestLoginBodyTooLarge(t *testing.T) {
+	h, _, _ := setupTestHandler(t)
+	// Create a body larger than 1MiB
+	big := strings.Repeat("a", 1<<20+100)
+	form := "csrf_token=x&token=y&data=" + big
+	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	// Should redirect to login with error (parse error) due to MaxBytesReader
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rec.Code)
+	}
+}

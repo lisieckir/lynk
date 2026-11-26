@@ -175,6 +175,41 @@ func LoadFrom(lookup LookupFunc) (Config, error) {
 			cfg.CORS.MaxAgeSeconds = maxAge
 		}
 	}
+	if raw, ok := lookupValue(lookup, "LYNK_LOGIN_RATE_LIMIT_MAX"); ok {
+		n, err := strconv.Atoi(strings.TrimSpace(raw))
+		if err != nil || n <= 0 {
+			errs = append(errs, fmt.Errorf("LYNK_LOGIN_RATE_LIMIT_MAX: must be a positive integer"))
+		} else {
+			cfg.LoginRateLimitMax = n
+		}
+	}
+	if raw, ok := lookupValue(lookup, "LYNK_LOGIN_RATE_LIMIT_WINDOW"); ok {
+		d, err := time.ParseDuration(strings.TrimSpace(raw))
+		if err != nil || d <= 0 {
+			errs = append(errs, fmt.Errorf("LYNK_LOGIN_RATE_LIMIT_WINDOW: must be a positive duration (e.g. 1m)"))
+		} else {
+			cfg.LoginRateLimitWindow = d
+		}
+	}
+	if raw, ok := lookupValue(lookup, "LYNK_WEB_MAX_SESSIONS"); ok {
+		n, err := strconv.Atoi(strings.TrimSpace(raw))
+		if err != nil || n <= 0 {
+			errs = append(errs, fmt.Errorf("LYNK_WEB_MAX_SESSIONS: must be a positive integer"))
+		} else {
+			cfg.WebMaxSessions = n
+		}
+	}
+	if raw, ok := lookupValue(lookup, "LYNK_TRUST_PROXY_HEADERS"); ok {
+		v := strings.ToLower(strings.TrimSpace(raw))
+		switch v {
+		case "true", "1", "yes":
+			cfg.TrustProxyHeaders = true
+		case "false", "0", "no":
+			cfg.TrustProxyHeaders = false
+		default:
+			errs = append(errs, fmt.Errorf("LYNK_TRUST_PROXY_HEADERS: must be true/false"))
+		}
+	}
 
 	// Validate is intentionally called even after successful parsing: it is
 	// the single source of truth for invariants, including programmatic use.
@@ -214,6 +249,15 @@ func (c Config) Validate() error {
 	}
 	if _, err := cors.New(c.CORS); err != nil {
 		errs = append(errs, fmt.Errorf("LYNK_CORS_ALLOWED_ORIGINS, LYNK_CORS_ALLOWED_METHODS, LYNK_CORS_ALLOWED_HEADERS, LYNK_CORS_MAX_AGE: %w", err))
+	}
+	if c.LoginRateLimitMax <= 0 {
+		errs = append(errs, fmt.Errorf("LoginRateLimitMax must be positive"))
+	}
+	if c.LoginRateLimitWindow <= 0 {
+		errs = append(errs, fmt.Errorf("LoginRateLimitWindow must be positive"))
+	}
+	if c.WebMaxSessions <= 0 {
+		errs = append(errs, fmt.Errorf("WebMaxSessions must be positive"))
 	}
 	return errors.Join(errs...)
 }

@@ -69,6 +69,10 @@ func runServer(ctx context.Context, lookup config.LookupFunc, out io.Writer) err
 	serverCfg.ReadinessTimeout = cfg.HealthTimeout
 	serverCfg.CORS = cfg.CORS
 	serverCfg.SecureCookies = cfg.Env.IsProduction()
+	serverCfg.LoginRateLimitMax = cfg.LoginRateLimitMax
+	serverCfg.LoginRateLimitWindow = cfg.LoginRateLimitWindow
+	serverCfg.WebMaxSessions = cfg.WebMaxSessions
+	serverCfg.TrustProxyHeaders = cfg.TrustProxyHeaders
 	return server.Run(ctx, serverCfg, db, logger)
 }
 

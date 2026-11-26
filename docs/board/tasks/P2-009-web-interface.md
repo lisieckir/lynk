@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BLOCKED` |
+| Status | `DONE` |
 | Priorytet | `P0` |
 | Owner | Iceman Free |
 | Faza | Phase 5 |
@@ -34,14 +34,14 @@ SingleFile/assets/bundles i nowy frontend build pipeline.
 
 ## Kryteria akceptacji
 
-- [ ] Niezalogowany użytkownik nie może czytać ani mutować bookmarków.
-- [ ] Login tworzy bezpieczną, wygasającą sesję bez zapisywania surowego tokenu.
-- [ ] Mutacje odrzucają brakujący/niepoprawny CSRF token.
-- [ ] Lista, search, tags, archive, create, edit i delete działają przez UI.
-- [ ] Wszystkie rekordy są owner-scoped; output jest escapowany przez templates.
-- [ ] Security headers, request limits i cookie policy są testowane.
-- [ ] `make check`, test/race, compatibility, integration i build przechodzą.
-- [ ] Niezależny security review APPROVE i osobny PO_REVIEW.
+- [x] Niezalogowany użytkownik nie może czytać ani mutować bookmarków.
+- [x] Login tworzy bezpieczną, wygasającą sesję bez zapisywania surowego tokenu.
+- [x] Mutacje odrzucają brakujący/niepoprawny CSRF token.
+- [x] Lista, search, tags, archive, create, edit i delete działają przez UI.
+- [x] Wszystkie rekordy są owner-scoped; output jest escapowany przez templates.
+- [x] Security headers, request limits i cookie policy są testowane.
+- [x] `make check`, test/race, compatibility, integration i build przechodzą.
+- [x] Niezależny security review APPROVE i osobny PO_REVIEW.
 
 ## Postęp
 
@@ -52,8 +52,8 @@ SingleFile/assets/bundles i nowy frontend build pipeline.
 | 2026-11-26 | `BLOCKED` | Big Pickle | Follow-up still incomplete: exact pinned linter unavailable, configuration and exhaustive security/flow tests missing |
 | 2026-11-26 | `BLOCKED` | PO | `80197f1` passes exact pinned linter, but env parsing and exhaustive security/flow tests remain incomplete |
 | 2026-11-26 | `BLOCKED` | PO | `0c27d07` adds env parsing and representative tests; final security review pending because exhaustive matrix remains partial |
+| 2026-11-26 | `DONE` | PO | Security review `APPROVE`, full pinned matrix PASS, production cookie test and env docs added |
 
 ## Blockery
 
-Nie integrować `80c03e4` przed naprawą findings, pełną macierzą z pinned
-linterem i ponownym niezależnym security review.
+Brak blockerów. P2-009 jest zintegrowane po security `APPROVE` i PO_REVIEW.

@@ -18,13 +18,16 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
   compatibility tests i owner scoping zostały zintegrowane po review.
 * **P2-004 — `DONE`**: search, pagination, archive/update mutations, overflow
   guard i dokumentacja zostały zintegrowane po niezależnym APPROVE.
-* **P2-005 — `IN_PROGRESS`**: Nemotron Lightning Free implementuje replay
-  kontraktu rozszerzenia i parity pól.
+* **P2-005 — `DONE`**: replay kontraktu rozszerzenia, writable parity i tags
+  pagination zostały zintegrowane po niezależnym APPROVE.
 
 ## Punkt wznowienia
 
 P2-004 jest zamknięte. Następnym krokiem może być przydzielenie P2-005
 extension contract replay po aktualizacji boardu.
+
+P2-005 jest zamknięte. Następny krok to przygotowanie P2-006: SSRF-safe
+metadata extraction, z obowiązkowym security review i osobnym PO_REVIEW.
 
 ## Decyzje P2-002
 

@@ -29,6 +29,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-008](tasks/P2-008-cors-options.md) | P1 | CORS i OPTIONS dla API | Hy4 Flash Free | `DONE` | P2-007 |
 | [P2-009](tasks/P2-009-web-interface.md) | P0 | Web interface MVP | Iceman Free | `DONE` | P2-008 |
 | [P2-010](tasks/P2-010-netscape-import-export.md) | P0 | Netscape HTML import/export | Hy4 Flash Free | `DONE` | P2-009 |
+| [P2-011](tasks/P2-011-performance-release.md) | P0 | Performance, resource profile i final release gate | Big Pickle | `IN_PROGRESS` | P2-010 |
 
 ## Rejestr blockerów i decyzji
 
@@ -73,6 +74,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-010 | Request changes | Symlinked-parent DB overwrite HIGH i cumulative field-cap bypass MEDIUM; poprawki zlecone | Big Pickle |
 | 2026-11-26 | P2-010 | Review pending | `9dcd3da` fixes PASS; niezależna re-review w toku | PO |
 | 2026-11-26 | P2-010 | Akceptacja | Re-review `APPROVE`, full matrix PASS, integrated `4d7fee8`/`1ebbb30`; PO_REVIEW PASS | PO |
+| 2026-11-26 | P2-011 | Decyzja PO | Phase 8 performance/resource/release gate przed stable release | PO |
 
 ## Historia zmian tablicy
 

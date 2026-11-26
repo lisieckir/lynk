@@ -35,9 +35,11 @@ zostało zintegrowane po niezależnym security review.
   niezależnym security `APPROVE`.
 * **P2-010 — `DONE`**: Netscape import/export, bounded parser, atomic CLI
   safety i security fixes zostały zintegrowane po niezależnym `APPROVE`.
+* **P2-011 — `IN_PROGRESS`**: Big Pickle wykonuje finalny performance,
+  resource i release gate.
 
-P2-010 jest zamknięte. Następny krok to Phase 8 performance/release
-hardening; backup/restore jest już dostępne przez SQLite-aware helper i Makefile.
+P2-010 jest zamknięte. P2-011 jest finalnym gate'em Phase 8; backup/restore
+jest już dostępne przez SQLite-aware helper i Makefile.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

@@ -28,6 +28,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-007](tasks/P2-007-release-e2e.md) | P0 | Release E2E i deployment validation | Big Pickle | `DONE` | P2-006 |
 | [P2-008](tasks/P2-008-cors-options.md) | P1 | CORS i OPTIONS dla API | Hy4 Flash Free | `DONE` | P2-007 |
 | [P2-009](tasks/P2-009-web-interface.md) | P0 | Web interface MVP | Iceman Free | `DONE` | P2-008 |
+| [P2-010](tasks/P2-010-netscape-import-export.md) | P0 | Netscape HTML import/export | Hy4 Flash Free | `IN_PROGRESS` | P2-009 |
 
 ## Rejestr blockerów i decyzji
 
@@ -67,6 +68,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-009 | Request changes | `80197f1` ma linter 0 issues, lecz env parsing i exhaustive security/flow tests nadal brakują | PO |
 | 2026-11-26 | P2-009 | Review pending | `0c27d07` ma env parsing i pinned check PASS; final security review ma potwierdzić blokery oraz zakres testów | PO |
 | 2026-11-26 | P2-009 | Akceptacja | Security `APPROVE`, full matrix PASS, cookie policy test/docs added; PO_REVIEW PASS | PO |
+| 2026-11-26 | P2-010 | Decyzja PO | Netscape import/export jest wymaganiem Definition of Done; bounded CLI i round-trip tests obowiązkowe | PO |
 
 ## Historia zmian tablicy
 

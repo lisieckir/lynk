@@ -30,13 +30,14 @@ zostało zintegrowane po niezależnym security review.
 
 ## Punkt wznowienia
 
-P2-009 jest zamknięte. Następne braki Definition of Done to Netscape
-import/export oraz operacyjne backup/restore.
 * **P2-009 — `DONE`**: web interface MVP, session auth, CSRF, rate limits,
   security headers, owner scoping i cookie policy zostały zintegrowane po
   niezależnym security `APPROVE`.
-* **P2-010 — `BLOCKED`**: review wykrył symlinked-parent DB overwrite HIGH
-  i cumulative field-cap bypass MEDIUM; poprawki są zlecone.
+* **P2-010 — `DONE`**: Netscape import/export, bounded parser, atomic CLI
+  safety i security fixes zostały zintegrowane po niezależnym `APPROVE`.
+
+P2-010 jest zamknięte. Następny krok to Phase 8 performance/release
+hardening; backup/restore jest już dostępne przez SQLite-aware helper i Makefile.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

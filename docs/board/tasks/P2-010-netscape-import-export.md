@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BLOCKED` |
+| Status | `DONE` |
 | Priorytet | `P0` |
 | Owner | Hy4 Flash Free |
 | Faza | Phase 7 |
@@ -33,14 +33,14 @@ network fetches.
 
 ## Kryteria akceptacji
 
-- [ ] Import accepts common Netscape HTML and preserves URL/title/notes/tags.
-- [ ] Export is valid Netscape HTML and round-trips without XSS or data loss.
-- [ ] User selection is explicit and owner-scoped.
-- [ ] Duplicate and malformed input behavior is deterministic and documented.
-- [ ] Limits prevent unbounded memory/file processing.
-- [ ] CLI errors do not leak secrets or overwrite source/destination silently.
-- [ ] `make check`, test/race, build and compatibility pass.
-- [ ] Independent review APPROVE and PO_REVIEW.
+- [x] Import accepts common Netscape HTML and preserves URL/title/notes/tags.
+- [x] Export is valid Netscape HTML and round-trips without XSS or data loss.
+- [x] User selection is explicit and owner-scoped.
+- [x] Duplicate and malformed input behavior is deterministic and documented.
+- [x] Limits prevent unbounded memory/file processing.
+- [x] CLI errors do not leak secrets or overwrite source/destination silently.
+- [x] `make check`, test/race, build and compatibility pass.
+- [x] Independent review APPROVE and PO_REVIEW.
 
 ## Postęp
 
@@ -50,8 +50,8 @@ network fetches.
 | 2026-11-26 | `REVIEW` | Hy4 Flash Free | `043cba0` implementuje parser, bounded CLI, atomic import i round-trip; niezależny review w toku |
 | 2026-11-26 | `BLOCKED` | Big Pickle | Review REQUEST CHANGES: symlinked-parent DB overwrite (HIGH) and cumulative field-cap bypass (MEDIUM) |
 | 2026-11-26 | `BLOCKED` | Hy4 Flash Free | `9dcd3da` naprawia findings; pełna macierz PASS, ponowny niezależny review w toku |
+| 2026-11-26 | `DONE` | PO | Re-review `APPROVE`; symlink/cap/UTF-8 fixes and full matrix PASS; PO_REVIEW PASS |
 
 ## Blockery
 
-Nie integrować `043cba0` przed naprawą destination canonicalization, cumulative
-field limits i regresyjnymi testami bezpieczeństwa oraz ponownym review.
+Brak blockerów. P2-010 jest zintegrowane po niezależnym security `APPROVE`.

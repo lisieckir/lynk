@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `REVIEW` |
 | Priorytet | `P0` |
 | Owner | Hy4 Flash Free |
 | Faza | Phase 7 |
@@ -47,3 +47,4 @@ network fetches.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-26 | `IN_PROGRESS` | Hy4 Flash Free | Przydzielono import/export Phase 7 |
+| 2026-11-26 | `REVIEW` | Hy4 Flash Free | `043cba0` implementuje parser, bounded CLI, atomic import i round-trip; niezależny review w toku |

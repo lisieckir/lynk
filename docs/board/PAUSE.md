@@ -35,8 +35,8 @@ import/export oraz operacyjne backup/restore.
 * **P2-009 — `DONE`**: web interface MVP, session auth, CSRF, rate limits,
   security headers, owner scoping i cookie policy zostały zintegrowane po
   niezależnym security `APPROVE`.
-* **P2-010 — `IN_PROGRESS`**: Hy4 Flash Free implementuje bounded Netscape
-  HTML import/export z jawnym owner selection.
+* **P2-010 — `REVIEW`**: `043cba0` implementuje bounded Netscape HTML
+  import/export z jawnym owner selection; review niezależny w toku.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

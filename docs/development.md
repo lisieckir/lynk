@@ -52,6 +52,26 @@ official extension keep working. Responses vary on `Origin` (and preflight
 responses on `Access-Control-Request-Method`/`-Headers`). `GET /health` stays
 public, outside the CORS wrapper, with its original body and status.
 
+## Web sessions and login limits (P2-009)
+
+The server-rendered UI authenticates with an existing API token, then stores
+only an opaque in-memory session ID, user ID and CSRF token. Raw API tokens are
+never placed in cookies or sessions. Session cookies are `HttpOnly`,
+`SameSite=Lax`, expire after 24 hours, and are `Secure` when
+`LYNK_ENV=production`. Authenticated HTML uses `Cache-Control: no-store` and
+security headers.
+
+| Variable | Default | Meaning |
+|---|---:|---|
+| `LYNK_LOGIN_RATE_LIMIT_MAX` | `10` | attempts per client IP window |
+| `LYNK_LOGIN_RATE_LIMIT_WINDOW` | `1m` | fixed login rate-limit window |
+| `LYNK_WEB_MAX_SESSIONS` | `10000` | maximum in-memory sessions |
+| `LYNK_TRUST_PROXY_HEADERS` | `false` | opt in to `X-Forwarded-For` for rate limiting |
+
+Keep `LYNK_TRUST_PROXY_HEADERS=false` unless the reverse proxy overwrites
+forwarding headers. These controls are process-local; sessions and limiter
+state are lost on restart.
+
 ## Reproducibility
 
 Use Go 1.27.4 for formatting, testing, vetting and building. The `go` directive

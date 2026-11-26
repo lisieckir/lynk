@@ -36,6 +36,28 @@ func setupTestHandler(t *testing.T) (http.Handler, *sql.DB, string) {
 	return mux, db, ti.Token
 }
 
+func setupConfiguredHandler(t *testing.T, cfg web.Config) (http.Handler, *sql.DB, string) {
+	t.Helper()
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	db, err := database.Open(ctx, database.Config{Path: dbPath})
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	ti, err := auth.CreateToken(ctx, db, "configured-user", "configured-token")
+	if err != nil {
+		t.Fatalf("create token: %v", err)
+	}
+	h, err := web.NewHandler(db, nil, cfg)
+	if err != nil {
+		t.Fatalf("new handler: %v", err)
+	}
+	mux := http.NewServeMux()
+	h.Register(mux)
+	return mux, db, ti.Token
+}
+
 func TestUnauthenticatedRedirect(t *testing.T) {
 	h, _, _ := setupTestHandler(t)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -144,5 +166,51 @@ func TestLoginBodyTooLarge(t *testing.T) {
 	// Should redirect to login with error (parse error) due to MaxBytesReader
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("expected 303, got %d", rec.Code)
+	}
+}
+
+func TestProductionSessionCookieFlags(t *testing.T) {
+	h, _, token := setupConfiguredHandler(t, web.Config{SecureCookie: true})
+
+	getReq := httptest.NewRequest(http.MethodGet, "/login", nil)
+	getRec := httptest.NewRecorder()
+	h.ServeHTTP(getRec, getReq)
+	var loginCSRF string
+	for _, cookie := range getRec.Result().Cookies() {
+		if cookie.Name == web.LoginCSRFCookieName {
+			loginCSRF = cookie.Value
+		}
+	}
+	if loginCSRF == "" {
+		t.Fatal("login csrf cookie missing")
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/login",
+		strings.NewReader("csrf_token="+loginCSRF+"&token="+token))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: web.LoginCSRFCookieName, Value: loginCSRF})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("login post: got %d, body=%s", rec.Code, rec.Body.String())
+	}
+
+	var session *http.Cookie
+	for _, cookie := range rec.Result().Cookies() {
+		if cookie.Name == web.SessionCookieName {
+			session = cookie
+		}
+	}
+	if session == nil {
+		t.Fatal("session cookie missing")
+	}
+	if !session.Secure || !session.HttpOnly {
+		t.Fatalf("session cookie security flags = secure:%v httponly:%v", session.Secure, session.HttpOnly)
+	}
+	if session.SameSite != http.SameSiteLaxMode {
+		t.Fatalf("session SameSite = %v, want Lax", session.SameSite)
+	}
+	if session.Path != "/" || session.MaxAge <= 0 {
+		t.Fatalf("session cookie path/max-age = %q/%d", session.Path, session.MaxAge)
 	}
 }

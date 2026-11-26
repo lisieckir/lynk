@@ -391,6 +391,12 @@ Do not rely solely on validating the URL string.
 - Minimal Docker image.
 - Configurable rate limiting.
 
+The web UI operational controls are configured with
+`LYNK_LOGIN_RATE_LIMIT_MAX`, `LYNK_LOGIN_RATE_LIMIT_WINDOW`,
+`LYNK_WEB_MAX_SESSIONS` and `LYNK_TRUST_PROXY_HEADERS`. Safe defaults reject
+untrusted forwarding headers and bound both login attempts and in-memory
+sessions.
+
 ---
 
 # 7. Performance Requirements

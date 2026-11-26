@@ -29,9 +29,8 @@ extension contract replay po aktualizacji boardu.
 P2-005 jest zamknięte. Następny krok to przygotowanie P2-006: SSRF-safe
 metadata extraction, z obowiązkowym security review i osobnym PO_REVIEW.
 
-* **P2-006 — `BLOCKED`**: security review wykrył high-severity parser/SSRF/
-  shutdown problemy, potem potwierdził parser panic, 3 linter findings,
-  persistence/lifecycle/logging gaps; poprawki są zlecone w worktree.
+* **P2-006 — `DONE`**: SSRF-safe metadata fetcher, worker lifecycle,
+  persistence/check mapping i security fixes zostały zintegrowane po APPROVE.
 
 ## Decyzje P2-002
 

@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BLOCKED` |
+| Status | `DONE` |
 | Priorytet | `P0` |
 | Owner | Iceman Free |
 | Faza | Phase 6 capability pulled forward for MVP compatibility |
@@ -34,16 +34,16 @@ metadata parity z zewnętrznymi serwisami.
 
 ## Kryteria akceptacji
 
-- [ ] Zablokowane są wszystkie adresy wymagane przez SPEC, także po redirect.
-- [ ] Fetcher akceptuje wyłącznie HTTP/HTTPS i ma timeout/size/redirect limits.
-- [ ] DNS rebinding nie pozwala ominąć walidacji adresu.
-- [ ] HTML parser zwraca oczekiwane title/description/OG/favicon dane.
-- [ ] Create nie czeka na fetch ani nie failuje przez błąd sieci.
-- [ ] `disable_scraping` nie enqueue’uje zadania.
-- [ ] `/check/` zachowuje stabilny JSON i nie wykonuje niekontrolowanego requestu.
-- [ ] Worker ma bounded concurrency, cancellation i graceful shutdown.
-- [ ] `make check`, test/race, compatibility, build i verify przechodzą.
-- [ ] Niezależny security review daje `APPROVE`; następnie obowiązkowe
+- [x] Zablokowane są wszystkie adresy wymagane przez SPEC, także po redirect.
+- [x] Fetcher akceptuje wyłącznie HTTP/HTTPS i ma timeout/size/redirect limits.
+- [x] DNS rebinding nie pozwala ominąć walidacji adresu.
+- [x] HTML parser zwraca oczekiwane title/description/OG/favicon dane.
+- [x] Create nie czeka na fetch ani nie failuje przez błąd sieci.
+- [x] `disable_scraping` nie enqueue’uje zadania.
+- [x] `/check/` zachowuje stabilny JSON i nie wykonuje niekontrolowanego requestu.
+- [x] Worker ma bounded concurrency, cancellation i graceful shutdown.
+- [x] `make check`, test/race, compatibility, build i verify przechodzą.
+- [x] Niezależny security review daje `APPROVE`; następnie obowiązkowe
   `PO_REVIEW` przed `DONE`.
 
 ## Postęp
@@ -53,6 +53,7 @@ metadata parity z zewnętrznymi serwisami.
 | 2026-11-26 | `IN_PROGRESS` | Iceman Free | Przydzielono security-critical implementację |
 | 2026-11-26 | `BLOCKED` | Big Pickle | Security review REQUEST CHANGES: high-severity parser, SSRF range i worker shutdown findings; linter 4 issues |
 | 2026-11-26 | `BLOCKED` | Big Pickle | Re-review REQUEST CHANGES: parser panic remains; 3 lint issues, DTO persistence, lifecycle and URL redaction gaps |
+| 2026-11-26 | `DONE` | PO | `ae18ff1` APPROVE po security re-review; pełna macierz i PO_REVIEW PASS |
 
 ## Decyzje PO
 
@@ -62,5 +63,4 @@ metadata parity z zewnętrznymi serwisami.
 
 ## Blockery
 
-Nie integrować `d516fac` przed naprawą high-severity security findings,
-pełnym test matrix i ponownym niezależnym security review.
+Brak blockerów. P2-006 jest zintegrowane po security APPROVE i PO_REVIEW.

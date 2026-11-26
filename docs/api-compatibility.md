@@ -306,10 +306,11 @@ bookmark routes are also not part of token-authenticated extension behavior.
 
 Also explicitly deferred, and visible in the API as documented no-ops:
 
-* **metadata fetching** — `check` never performs a network request, so
-  `metadata.title`/`description`/`preview_image` are `null`, `auto_tags` is
-  always `[]` and `ignore_cache` is accepted and ignored. Real fetching is
-  P2-006 and carries a mandatory security review;
+* **metadata enrichment limits** — `check` now performs a bounded,
+  SSRF-safe best-effort fetch. `metadata.title`/`description`/`preview_image`
+  may be populated; failures still produce the stable nullable shape and
+  `auto_tags` remains `[]`. `ignore_cache` is accepted and currently does not
+  bypass the bounded fetch policy;
 * **SingleFile HTML snapshots, assets and bundles** — no snapshot is
   scheduled, so `disable_html_snapshot` (like `disable_scraping`) is accepted
   and ignored, and no asset/bundle route exists;
@@ -322,9 +323,10 @@ Also explicitly deferred, and visible in the API as documented no-ops:
 1. Upstream can add extension calls after this revision. Pin a source revision
    in compatibility documentation and rerun request tracing against each
    extension release.
-2. `check` performs metadata loading in Linkding. Lynk should return the same
-   shape while making metadata retrieval bounded/asynchronous where possible;
-   the extension tolerates `null` metadata but not a malformed JSON shape.
+2. `check` performs bounded metadata loading. Lynk must keep the SSRF policy,
+   timeout/body/redirect limits and stable nullable JSON shape as metadata
+   extraction evolves; the extension tolerates `null` metadata but not a
+   malformed JSON shape.
 3. The extension's current save implementation relies on Linkding's
    create-is-update-on-duplicate behavior. Implementing strict duplicate
    rejection would break the official extension.

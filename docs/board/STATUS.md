@@ -65,6 +65,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-009 | Request changes | Security review wykrył lint blocker, brak rate limitu/bounded sessions, logout CSRF gap, braki testów i duplicate-create overwrite | Big Pickle |
 | 2026-11-26 | P2-009 | Request changes | Follow-up `a62e0b5` nadal bez exact pinned check, konfigurowalnych limitów i pełnego test matrix | PO |
 | 2026-11-26 | P2-009 | Request changes | `80197f1` ma linter 0 issues, lecz env parsing i exhaustive security/flow tests nadal brakują | PO |
+| 2026-11-26 | P2-009 | Review pending | `0c27d07` ma env parsing i pinned check PASS; final security review ma potwierdzić blokery oraz zakres testów | PO |
 
 ## Historia zmian tablicy
 

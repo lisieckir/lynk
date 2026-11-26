@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `REVIEW` |
 | Priorytet | `P0` |
 | Owner | Big Pickle |
 | Faza | Phase 8 |
@@ -46,3 +46,4 @@ features and unsupported architectures.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-26 | `IN_PROGRESS` | Big Pickle | Przydzielono finalny Phase 8 release gate |
+| 2026-11-26 | `REVIEW` | Big Pickle | `08e3390` benchmark/resource/Docker matrix PASS; independent release review w toku |

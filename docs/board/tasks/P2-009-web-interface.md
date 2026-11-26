@@ -50,6 +50,7 @@ SingleFile/assets/bundles i nowy frontend build pipeline.
 | 2026-11-26 | `IN_PROGRESS` | Iceman Free | Przydzielono implementację web interface MVP |
 | 2026-11-26 | `BLOCKED` | Big Pickle | Security review REQUEST CHANGES: lint blocker, login DoS/rate limit, logout CSRF, test gaps and duplicate-create data loss |
 | 2026-11-26 | `BLOCKED` | Big Pickle | Follow-up still incomplete: exact pinned linter unavailable, configuration and exhaustive security/flow tests missing |
+| 2026-11-26 | `BLOCKED` | PO | `80197f1` passes exact pinned linter, but env parsing and exhaustive security/flow tests remain incomplete |
 
 ## Blockery
 

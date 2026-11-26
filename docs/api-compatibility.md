@@ -182,9 +182,9 @@ Verified implementation differences, both covered by compatibility tests:
   useful while the user is still typing a partial word; an infix fragment
   (e.g. `lph` for `alpha`) does not match.
 * Lynk treats a missing, unparsable or non-positive `limit` as the default
-  page size of 100 and a missing or unparsable `offset` as `0`. DRF accepts
-  `limit=0` as an empty page; Lynk rejects that degenerate value so `next`
-  cannot point at the same empty page.
+  page size of 100, so `limit=0` falls back to 100, and a missing or
+  unparsable `offset` as `0`. DRF itself accepts `limit=0` as an empty page;
+  Lynk normalizes that value to the default page size.
 
 ## Errors and status behavior
 
@@ -203,20 +203,33 @@ captured in compatibility tests before intentionally reproducing it. At
 minimum Lynk must preserve status, JSON content type and field-keyed
 validation errors used by the extension.
 
-## Implemented foundation (P2-003)
+## Implemented API (P2-003 and P2-004)
 
-`internal/api/linkding` now serves the canonical trailing-slash routes
+`internal/api/linkding` serves the canonical trailing-slash routes
 `GET /api/user/profile/`, `GET /api/tags/`, `GET /api/bookmarks/check/`,
-`GET/POST /api/bookmarks/` and `GET/DELETE /api/bookmarks/{id}/`. The router
-answers `404` without a redirect for non-canonical paths, applies the
-`Token`/`Bearer` middleware to API requests, scopes every read and write to the
-authenticated user, and uses dedicated DTOs with the full Linkding bookmark
-field set (generated fields remain `null` or `[]`). List endpoints keep the
-`{count,next,previous,results}` envelope with `next`/`previous` set to `null`;
-`q`, `limit` and `offset` are not interpreted yet. Check returns the documented
+`GET/POST /api/bookmarks/`, `GET /api/bookmarks/archived/` and
+`GET/PUT/PATCH/DELETE /api/bookmarks/{id}/`, plus
+`POST /api/bookmarks/{id}/archive/` and `/unarchive/`. The router answers
+`404` without a redirect for non-canonical paths, applies the `Token`/`Bearer`
+middleware to API requests, scopes every read and write to the authenticated
+user, and uses dedicated DTOs with the full Linkding bookmark field set
+(generated fields remain `null` or `[]`).
+
+List endpoints implement `q`, `limit` and `offset` and return the
+`{count,next,previous,results}` envelope. `count` is the total number of
+matching rows; `next` and `previous` are request-derived URLs carrying the
+current limit and the adjacent offset, or `null` at the ends of the result set.
+`q` is evaluated with FTS5 over the bookmark URL, title, description, notes
+and tags: each run of letters/digits becomes a quoted phrase, tokens are
+ANDed, and only the final token is treated as a prefix so partial words from
+the extension omnibox still match. FTS metacharacters in the query are inert.
+A query with no word characters matches nothing.
+
+`GET /api/tags/` currently returns the full owned tag list; `limit`/`offset`
+parsing for tags is not yet wired. Check returns the documented
 `{bookmark,metadata,auto_tags}` shape with bounded, null metadata and no
-network fetch. Field-keyed `400` responses, `401`, owner-scoped `404`, `201` and
-empty `204` are covered by `httptest` tests against a real migrated SQLite
+network fetch. Field-keyed `400` responses, `401`, owner-scoped `404`, `201`
+and empty `204` are covered by `httptest` tests against a real migrated SQLite
 database; `make test-compat` runs those tests.
 
 ## Explicit non-requirements for Phase 1/3

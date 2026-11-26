@@ -826,6 +826,49 @@ func TestUpdatePutPatchAndCollisions(t *testing.T) {
 	assertStatus(t, rec, http.StatusNotFound)
 }
 
+func TestUpdateBlankTagNamesReturnsFieldError(t *testing.T) {
+	f := newFixture(t)
+	b := createBookmark(t, f.handler, token(f.aliceToken), map[string]any{
+		"url": "https://blanktags.example/a", "title": "Original", "tag_names": []string{"keep"},
+	})
+	id := fmt.Sprintf("/api/bookmarks/%d/", int64(b["id"].(float64)))
+
+	for _, method := range []string{http.MethodPut, http.MethodPatch} {
+		t.Run(method, func(t *testing.T) {
+			rec := request(t, f.handler, method, id, token(f.aliceToken), map[string]any{
+				"url":       "https://blanktags.example/a",
+				"tag_names": []string{""},
+			})
+			assertStatus(t, rec, http.StatusBadRequest)
+			body := decodeObject(t, rec)
+			if _, ok := body["tag_names"]; !ok {
+				t.Errorf("%s blank tag_names error = %v, want tag_names field", method, body)
+			}
+			if _, ok := body["url"]; ok {
+				t.Errorf("%s blank tag_names error leaked url field: %v", method, body)
+			}
+
+			// Whitespace-only tags are blank too.
+			rec = request(t, f.handler, method, id, token(f.aliceToken), map[string]any{
+				"url":       "https://blanktags.example/a",
+				"tag_names": []string{"   "},
+			})
+			assertStatus(t, rec, http.StatusBadRequest)
+			body = decodeObject(t, rec)
+			if _, ok := body["tag_names"]; !ok {
+				t.Errorf("%s whitespace tag_names error = %v, want tag_names field", method, body)
+			}
+		})
+	}
+
+	// The failed validation must not have changed the stored tags.
+	rec := request(t, f.handler, http.MethodGet, id, token(f.aliceToken), nil)
+	assertStatus(t, rec, http.StatusOK)
+	if got := decodeObject(t, rec)["tag_names"]; !reflect.DeepEqual(got, []any{"keep"}) {
+		t.Errorf("tags after failed update = %v, want [keep]", got)
+	}
+}
+
 func TestArchiveUnarchiveAndArchivedList(t *testing.T) {
 	f := newFixture(t)
 	b := createBookmark(t, f.handler, token(f.aliceToken), map[string]any{

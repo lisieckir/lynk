@@ -76,7 +76,10 @@ func parseOffsetParam(raw string) int {
 // request-derived URLs carrying the current limit and the adjacent offset, or
 // null at the ends of the result set.
 func pageLinks(r *http.Request, count, limit, offset int) (next, previous *string) {
-	if offset+limit < count {
+	// Guard against int overflow when offset or limit are huge: the next
+	// page exists only when offset + limit < count. Rewrite the comparison
+	// without addition so a bogus next URL cannot be produced.
+	if limit > 0 && offset >= 0 && offset < count && count-offset > limit {
 		u := pageURL(r, limit, offset+limit)
 		next = &u
 	}
@@ -134,6 +137,14 @@ func (a *API) updateBookmark(w http.ResponseWriter, r *http.Request, userID, id 
 	if requireURL && req.URL == nil {
 		writeValidation(w, "url", "This field is required.")
 		return
+	}
+	if req.TagNames != nil {
+		for _, tag := range *req.TagNames {
+			if strings.TrimSpace(tag) == "" {
+				writeValidation(w, "tag_names", "Tags must not be empty.")
+				return
+			}
+		}
 	}
 	in := bookmark.UpdateInput{
 		URL:         req.URL,

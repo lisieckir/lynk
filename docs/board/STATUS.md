@@ -46,6 +46,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-005 | Akceptacja | Finalny review APPROVE; replay, parity, tags pagination i pełna walidacja PASS | PO |
 | 2026-11-26 | P2-006 | Decyzja PO | Metadata wymagane przed release; security-critical slice z obowiązkowym security review | PO |
 | 2026-11-26 | P2-006 | Request changes | Security review wykrył high-severity parser/SSRF/shutdown issues oraz 4 lint findings | Big Pickle |
+| 2026-11-26 | P2-006 | Request changes | Re-review potwierdził parser panic, 3 lint findings, persistence/lifecycle/logging gaps | Big Pickle |
 | 2026-11-25 | P2-003 | Akceptacja | Finalny review APPROVE; API contract, compatibility tests, lint i race PASS | PO |
 
 ## Historia zmian tablicy

@@ -52,6 +52,7 @@ metadata parity z zewnętrznymi serwisami.
 |---|---|---|---|
 | 2026-11-26 | `IN_PROGRESS` | Iceman Free | Przydzielono security-critical implementację |
 | 2026-11-26 | `BLOCKED` | Big Pickle | Security review REQUEST CHANGES: high-severity parser, SSRF range i worker shutdown findings; linter 4 issues |
+| 2026-11-26 | `BLOCKED` | Big Pickle | Re-review REQUEST CHANGES: parser panic remains; 3 lint issues, DTO persistence, lifecycle and URL redaction gaps |
 
 ## Decyzje PO
 

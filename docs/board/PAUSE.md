@@ -30,7 +30,8 @@ P2-005 jest zamknięte. Następny krok to przygotowanie P2-006: SSRF-safe
 metadata extraction, z obowiązkowym security review i osobnym PO_REVIEW.
 
 * **P2-006 — `BLOCKED`**: security review wykrył high-severity parser/SSRF/
-  shutdown problemy oraz 4 linter findings; poprawki są zlecone w worktree.
+  shutdown problemy, potem potwierdził parser panic, 3 linter findings,
+  persistence/lifecycle/logging gaps; poprawki są zlecone w worktree.
 
 ## Decyzje P2-002
 

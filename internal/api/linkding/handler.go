@@ -15,6 +15,11 @@ import (
 
 const bookmarksPath = "/api/bookmarks/"
 
+// MetadataEnqueuer enqueues a metadata fetch job for a created bookmark.
+type MetadataEnqueuer interface {
+	Enqueue(bookmarkID int64, url string)
+}
+
 // API routes Linkding-compatible requests to owner-scoped handlers. It is
 // always wrapped in auth.RequireAuth by NewHandler.
 type API struct {
@@ -22,16 +27,22 @@ type API struct {
 	service    *bookmark.Service
 	serviceErr error
 	logger     *slog.Logger
+	metaEnq    MetadataEnqueuer
 }
 
 // NewHandler returns a handler for all /api/ routes. /health remains outside
 // this handler and therefore unauthenticated.
 func NewHandler(db *sql.DB, logger *slog.Logger) http.Handler {
+	return NewHandlerWithMetadata(db, logger, nil)
+}
+
+// NewHandlerWithMetadata returns a handler that can enqueue metadata fetches.
+func NewHandlerWithMetadata(db *sql.DB, logger *slog.Logger, metaEnq MetadataEnqueuer) http.Handler {
 	if logger == nil {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 	service, err := bookmark.NewService(db)
-	api := &API{db: db, service: service, serviceErr: err, logger: logger}
+	api := &API{db: db, service: service, serviceErr: err, logger: logger, metaEnq: metaEnq}
 	if db == nil {
 		// There is no authentication store to consult; fail closed without
 		// panicking on a nil *sql.DB.

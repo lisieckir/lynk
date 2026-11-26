@@ -336,6 +336,11 @@ func (a *API) createBookmark(w http.ResponseWriter, r *http.Request, userID int6
 		writeInternalError(w, a.logger, "POST "+bookmarksPath, err)
 	default:
 		writeJSON(w, http.StatusCreated, newBookmarkDTO(created))
+		if a.metaEnq != nil {
+			if !r.URL.Query().Has("disable_scraping") && !r.URL.Query().Has("disable_html_snapshot") {
+				a.metaEnq.Enqueue(created.ID, created.URL)
+			}
+		}
 	}
 }
 

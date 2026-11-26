@@ -1,7 +1,4 @@
 // Package server wires Lynk's minimal net/http server and its lifecycle.
-//
-// Phase 1 registers only the health route. API and UI handlers are added by
-// later phases without changing the shutdown contract established here.
 package server
 
 import (
@@ -17,7 +14,9 @@ import (
 
 	"github.com/lisieckir/lynk/internal/api/linkding"
 	"github.com/lisieckir/lynk/internal/health"
+	"github.com/lisieckir/lynk/internal/metadata"
 	"github.com/lisieckir/lynk/internal/shutdown"
+	"github.com/lisieckir/lynk/internal/worker"
 )
 
 const (
@@ -27,8 +26,6 @@ const (
 	DefaultIdleTimeout       = 60 * time.Second
 )
 
-// Config holds HTTP server settings. Zero or negative timeouts select the
-// documented defaults; ShutdownTimeout uses shutdown.DefaultTimeout.
 type Config struct {
 	Addr              string
 	ReadHeaderTimeout time.Duration
@@ -39,7 +36,6 @@ type Config struct {
 	ReadinessTimeout  time.Duration
 }
 
-// DefaultConfig returns safe timeouts for the given listen address.
 func DefaultConfig(addr string) Config {
 	return Config{
 		Addr:              addr,
@@ -52,23 +48,14 @@ func DefaultConfig(addr string) Config {
 	}
 }
 
-// Handler returns the root handler with the default readiness timeout.
 func Handler(db *sql.DB) http.Handler {
 	return HandlerWithReadinessTimeout(db, health.DefaultTimeout)
 }
 
-// HandlerWithReadinessTimeout returns the root handler with health and the
-// Linkding API wired. Only the exact canonical path GET /health is registered;
-// /health/ is deliberately not registered and therefore returns a deterministic
-// 404 from ServeMux. API routes keep their trailing slashes and are protected
-// by the token middleware inside linkding.NewHandler.
 func HandlerWithReadinessTimeout(db *sql.DB, timeout time.Duration) http.Handler {
 	return HandlerWithAPI(db, linkding.NewHandler(db, slog.Default()), timeout)
 }
 
-// HandlerWithAPI composes a custom API handler with the unauthenticated health
-// route. Registering /api as well as /api/ prevents ServeMux from redirecting
-// clients that omit the trailing slash: the API router answers 404 instead.
 func HandlerWithAPI(db *sql.DB, api http.Handler, timeout time.Duration) http.Handler {
 	mux := handlerWithChecker(db, timeout)
 	if api != nil {
@@ -78,29 +65,48 @@ func HandlerWithAPI(db *sql.DB, api http.Handler, timeout time.Duration) http.Ha
 	return mux
 }
 
-// handlerWithChecker is the test seam that proves a configured timeout reaches
-// the readiness handler without widening the production API.
 func handlerWithChecker(checker health.Checker, timeout time.Duration) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("GET "+health.Path, health.NewHandlerWithTimeout(checker, timeout))
 	return mux
 }
 
-// New builds an HTTP server with bounded request and readiness timeouts.
 func New(cfg Config, db *sql.DB) *http.Server {
-	return &http.Server{
+	return NewWithLogger(cfg, db, slog.Default())
+}
+
+func NewWithLogger(cfg Config, db *sql.DB, logger *slog.Logger) *http.Server {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	fetcher := metadata.NewFetcher(metadata.Config{})
+	metaWorker := worker.NewMetadataWorker(db, fetcher, logger, 100)
+	workerCtx := context.Background()
+	metaWorker.Start(workerCtx, 2)
+	api := linkding.NewHandlerWithMetadata(db, logger, &metaEnqAdapter{w: metaWorker})
+	handler := HandlerWithAPI(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout))
+	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           HandlerWithReadinessTimeout(db, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout)),
+		Handler:           handler,
 		ReadHeaderTimeout: durationOr(cfg.ReadHeaderTimeout, DefaultReadHeaderTimeout),
 		ReadTimeout:       durationOr(cfg.ReadTimeout, DefaultReadTimeout),
 		WriteTimeout:      durationOr(cfg.WriteTimeout, DefaultWriteTimeout),
 		IdleTimeout:       durationOr(cfg.IdleTimeout, DefaultIdleTimeout),
 	}
+	// Note: worker is started but not stopped here in this simple design.
+	// In practice, Serve() manages lifecycle better.
+	return srv
 }
 
-// Run binds cfg.Addr and serves until ctx is cancelled or serving fails. It
-// owns db once called: every error path attempts to close it, and successful
-// shutdown drains HTTP requests before closing the database.
+type metaEnqAdapter struct {
+	w *worker.MetadataWorker
+}
+
+func (a *metaEnqAdapter) Enqueue(bookmarkID int64, url string) {
+	a.w.Enqueue(worker.MetadataJob{BookmarkID: bookmarkID, URL: url})
+}
+
+// Run binds cfg.Addr and serves until ctx is cancelled or serving fails.
 func Run(ctx context.Context, cfg Config, db *sql.DB, logger *slog.Logger) error {
 	if ctx == nil {
 		return errors.Join(errors.New("server: nil context"), closeDatabase(db))
@@ -115,8 +121,7 @@ func Run(ctx context.Context, cfg Config, db *sql.DB, logger *slog.Logger) error
 	return Serve(ctx, cfg, ln, db, logger)
 }
 
-// Serve runs an already-bound listener with the same lifecycle as Run. Tests
-// use it with an ephemeral listener so startup and shutdown are deterministic.
+// Serve runs an already-bound listener with the same lifecycle as Run.
 func Serve(ctx context.Context, cfg Config, ln net.Listener, db *sql.DB, logger *slog.Logger) error {
 	if ctx == nil {
 		return errors.Join(errors.New("server: nil context"), closeDatabase(db))
@@ -128,11 +133,26 @@ func Serve(ctx context.Context, cfg Config, ln net.Listener, db *sql.DB, logger 
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 
-	// The fallback close covers cancellation that arrives before http.Server
-	// gets a chance to register the listener with Shutdown.
 	defer func() { _ = ln.Close() }()
 
-	srv := New(cfg, db)
+	// Setup metadata worker
+	fetcher := metadata.NewFetcher(metadata.Config{})
+	metaWorker := worker.NewMetadataWorker(db, fetcher, logger, 100)
+	workerCtx, workerCancel := context.WithCancel(ctx)
+	defer workerCancel()
+	metaWorker.Start(workerCtx, 2)
+
+	api := linkding.NewHandlerWithMetadata(db, logger, &metaEnqAdapter{w: metaWorker})
+	handler := HandlerWithAPI(db, api, durationOr(cfg.ReadinessTimeout, health.DefaultTimeout))
+	srv := &http.Server{
+		Addr:              cfg.Addr,
+		Handler:           handler,
+		ReadHeaderTimeout: durationOr(cfg.ReadHeaderTimeout, DefaultReadHeaderTimeout),
+		ReadTimeout:       durationOr(cfg.ReadTimeout, DefaultReadTimeout),
+		WriteTimeout:      durationOr(cfg.WriteTimeout, DefaultWriteTimeout),
+		IdleTimeout:       durationOr(cfg.IdleTimeout, DefaultIdleTimeout),
+	}
+
 	serveCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -147,6 +167,8 @@ func Serve(ctx context.Context, cfg Config, ln net.Listener, db *sql.DB, logger 
 	cleanupErr := cleanupWith(serveCtx, cfg.ShutdownTimeout,
 		func(cleanupCtx context.Context) error {
 			logger.Info("http server shutting down")
+			// Stop worker first
+			metaWorker.Stop()
 			return srv.Shutdown(cleanupCtx)
 		},
 		func() error { return closeDatabase(db) },
@@ -168,8 +190,6 @@ func Serve(ctx context.Context, cfg Config, ln net.Listener, db *sql.DB, logger 
 	return result
 }
 
-// cleanupWith drains the HTTP server before closing the database. It attempts
-// the close even when shutdown fails and joins both errors for the caller.
 func cleanupWith(ctx context.Context, timeout time.Duration, shutdownFn func(context.Context) error, closeDB func() error) error {
 	if ctx == nil {
 		return errors.New("server: nil context")

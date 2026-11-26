@@ -257,35 +257,89 @@ func runBookmarksExport(ctx context.Context, args []string, lookup config.Lookup
 	return err
 }
 
-// prepareDestination rejects overwriting the database (including its WAL and
-// shared-memory sidecars) and refuses an existing file unless --overwrite was
-// explicit. It returns the absolute path used for the atomic write.
+// prepareDestination rejects overwriting the database (including its WAL,
+// shared-memory and journal sidecars) and refuses an existing file unless
+// --overwrite was explicit. Both the destination and the database are
+// canonicalised through every existing path component, so a symlinked parent
+// directory or another alias cannot smuggle the database past the comparison.
+// An existing symlink destination is rejected outright: writing through it
+// would replace whatever it points at. It returns the absolute path used for
+// the atomic write.
 func prepareDestination(dbPath, destination string, overwrite bool) (string, error) {
 	abs, err := filepath.Abs(destination)
 	if err != nil {
 		return "", fmt.Errorf("export destination: %w", err)
 	}
-	dbAbs, err := filepath.Abs(dbPath)
-	if err != nil {
-		return "", fmt.Errorf("database path: %w", err)
-	}
-	for _, protected := range []string{dbAbs, dbAbs + "-wal", dbAbs + "-shm"} {
-		if abs == protected {
-			return "", errors.New("export destination must not be the database file")
-		}
-	}
-	info, err := os.Lstat(abs)
+	info, statErr := os.Lstat(abs)
 	switch {
-	case err == nil:
+	case statErr == nil:
+		if info.Mode()&os.ModeSymlink != 0 {
+			return "", errors.New("export destination is a symlink")
+		}
 		if !info.Mode().IsRegular() {
 			return "", errors.New("export destination is not a regular file")
 		}
-		if !overwrite {
-			return "", errors.New("export destination already exists; pass --overwrite to replace it")
-		}
-	case errors.Is(err, os.ErrNotExist):
+	case errors.Is(statErr, os.ErrNotExist):
 	default:
-		return "", fmt.Errorf("inspect export destination: %w", err)
+		return "", fmt.Errorf("inspect export destination: %w", statErr)
+	}
+
+	canonicalDest, err := canonicalPath(abs)
+	if err != nil {
+		return "", fmt.Errorf("export destination: %w", err)
+	}
+	canonicalDB, err := canonicalPath(dbPath)
+	if err != nil {
+		return "", fmt.Errorf("database path: %w", err)
+	}
+	for _, protected := range []string{
+		canonicalDB,
+		canonicalDB + "-wal",
+		canonicalDB + "-shm",
+		canonicalDB + "-journal",
+	} {
+		if canonicalDest == protected {
+			return "", errors.New("export destination must not be the database file or its sidecars")
+		}
+		// SameFile also catches hard links and other aliases whose spelling
+		// differs from the canonical database path.
+		if statErr == nil {
+			protectedInfo, inspectErr := os.Lstat(protected)
+			if inspectErr == nil && os.SameFile(info, protectedInfo) {
+				return "", errors.New("export destination aliases the database file or its sidecars")
+			}
+		}
+	}
+	if statErr == nil && !overwrite {
+		return "", errors.New("export destination already exists; pass --overwrite to replace it")
 	}
 	return abs, nil
+}
+
+// canonicalPath resolves symlinks in every existing component of an absolute
+// path and leaves non-existing components literal. It is used only to compare
+// paths, never as the location written to: the caller keeps the original
+// absolute path for O_EXCL creation and atomic rename.
+func canonicalPath(path string) (string, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	resolved := string(filepath.Separator)
+	for _, part := range strings.Split(strings.TrimPrefix(abs, string(filepath.Separator)), string(filepath.Separator)) {
+		if part == "" || part == "." {
+			continue
+		}
+		next := filepath.Join(resolved, part)
+		real, err := filepath.EvalSymlinks(next)
+		switch {
+		case err == nil:
+			resolved = real
+		case errors.Is(err, os.ErrNotExist):
+			resolved = next
+		default:
+			return "", err
+		}
+	}
+	return filepath.Clean(resolved), nil
 }

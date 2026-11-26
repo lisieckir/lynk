@@ -90,10 +90,16 @@ Import never fetches URLs and never enqueues metadata work. It opens its source
 read-only, so the source file is never overwritten. Export writes a private
 (0600) file: an existing destination is refused unless `--overwrite` is passed,
 in which case a sibling temp file is atomically renamed into place. The export
-destination is rejected when it is the database file or its WAL/sidecars.
-`--file -` writes only the Netscape document to stdout; file exports print a
-one-line summary instead. Output contains no username, token, password hash or
-profile data.
+destination is rejected when it is the database file or its `-wal`, `-shm` or
+`-journal` sidecars: both the destination and the database path are canonicalised
+through every existing path component and compared, an existing symlink
+destination is refused outright, and `os.SameFile` catches hard-link aliases.
+This holds with and without `--overwrite`; a symlinked parent is still usable
+for a safe, unrelated destination. An unrecognised top-level command (for
+example the singular `bookmark`) returns a usage error and never starts the
+server. `--file -` writes only the Netscape document to stdout; file exports
+print a one-line summary instead. Output contains no username, token, password
+hash or profile data.
 
 ### Format mapping
 
@@ -124,8 +130,13 @@ Import defaults to 8 MiB / 10,000 bookmarks; export to 10,000 records. CLI
 overrides are capped at 64 MiB / 100,000 bookmarks and 100,000 exported rows.
 Additional caps bound title (16 KiB), description (64 KiB), tag count (64),
 tag length (255 bytes), folder depth (16) and folder tag length (1 KiB).
-Malformed HTML and limit breaches produce `ParseError` with a deterministic
-line number. By default any invalid record URL aborts before the single import
+Title and description caps are **cumulative decoded byte counts**: a title
+split by inline tags and several `<DD>` blocks for one bookmark share one cap
+and are rejected with a line-numbered parse error before any write. Input must
+be valid UTF-8 because the export declares `charset=UTF-8`; invalid bytes are
+rejected with a deterministic line number rather than normalised (an explicitly
+encoded U+FFFD is valid). Malformed HTML and limit breaches produce `ParseError`
+with a deterministic line number. By default any invalid record URL aborts before the single import
 transaction writes a row; `--continue-on-error` skips only invalid-URL records
 (counted as `failed`) while still committing all valid rows atomically.
 Database errors always abort and roll back. Duplicate URLs use the same
@@ -397,3 +408,30 @@ deterministic malformed-input errors, byte/count/tag/depth limits, XSS escaping,
 deterministic and archive-filtered export, owner isolation, duplicate merging,
 atomic rollback, no metadata fetch, no secret leakage, and CLI stdout/file,
 no-clobber and destination-safety behavior.
+
+### Security-review fix pass (2026-11-26, on `043cba0`)
+
+Independent review findings were closed without changing any existing command
+or API contract:
+
+* **HIGH — destination aliases:** `prepareDestination` canonicalises the
+  destination and the database path through every existing component, includes
+  `-journal` alongside `-wal`/`-shm`, refuses symlink destinations, and uses
+  `os.SameFile` for hard-link aliases. Regression tests use a symlinked parent
+  directory to point at the database and all sidecars with and without
+  `--overwrite`, plus a hard link and a symlink to an unrelated file, and assert
+  the database bytes and `sqlite_master` schema are unchanged. Atomic
+  temp-plus-rename and explicit no-clobber remain in place.
+* **MEDIUM — cumulative caps:** split title chunks and multiple `<DD>` blocks
+  are measured as one decoded total; the persistence boundary re-checks the
+  caps. Tests cover split blocks and assert rollback with no oversized values.
+* **LOW — UTF-8:** invalid bytes are rejected with a deterministic line number
+  before parsing or any write; encoded U+FFFD remains valid.
+* **LOW — command typo:** an unrecognised top-level command (including
+  `bookmark`) returns an error with a suggestion instead of starting the server.
+
+The same pinned matrix above was re-run after these changes: `gofmt -l .`,
+`go vet ./...`, `go build ./...`, `go test -count=1 ./...`,
+`go test -race -count=1 ./...`, `make check` with the exact pinned
+`golangci-lint v2.15.0` path (0 issues), `make test-compat`,
+`make test-integration`, `go mod tidy -diff` and `go mod verify` — all PASS.

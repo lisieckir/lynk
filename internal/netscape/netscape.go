@@ -17,6 +17,11 @@
 //     and export re-emits them, so a full export/import round trip preserves
 //     both flags. Tags are matched exactly, so an ordinary "work" tag is never
 //     reinterpreted.
+//   - The export declares charset=UTF-8, so input must be valid UTF-8. Invalid
+//     bytes (including inside entities) are rejected with a line-numbered
+//     parse error rather than silently normalised. Cumulative decoded title
+//     and description bounds apply across split text/inline-tag chunks and
+//     multiple <DD> blocks, so no oversized value reaches the database.
 //   - Import is strict and atomic by default: the whole file is parsed and
 //     validated before one database transaction writes any row. A malformed
 //     file or an invalid URL therefore leaves the database untouched. The

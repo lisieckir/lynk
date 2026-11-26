@@ -83,6 +83,14 @@ func Import(ctx context.Context, db *sql.DB, svc *bookmark.Service, ownerID int6
 }
 
 func createInput(rec Record) (bookmark.CreateInput, error) {
+	// Parse already enforces these caps; re-check at the persistence boundary
+	// so an oversized value can never reach the database via a future caller.
+	if len(rec.Title) > MaxTitleBytes {
+		return bookmark.CreateInput{}, fmt.Errorf("%w: title exceeds %d bytes", ErrLimitExceeded, MaxTitleBytes)
+	}
+	if len(rec.Description) > MaxDescriptionBytes {
+		return bookmark.CreateInput{}, fmt.Errorf("%w: description exceeds %d bytes", ErrLimitExceeded, MaxDescriptionBytes)
+	}
 	raw := strings.TrimSpace(rec.URL)
 	if err := bookmark.ValidateURL(raw); err != nil {
 		return bookmark.CreateInput{}, fmt.Errorf("%w: %v", ErrInvalidURL, err)

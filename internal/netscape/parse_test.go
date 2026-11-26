@@ -179,6 +179,82 @@ func TestParseLimits(t *testing.T) {
 	}
 }
 
+func TestParseCumulativeFieldCapsAcrossChunks(t *testing.T) {
+	// A title split by inline tags must be bounded by the decoded total, not
+	// by the largest chunk.
+	chunk := strings.Repeat("x", 4096)
+	splitTitle := `<DL><A HREF="https://e.example">`
+	for i := 0; i < 5; i++ {
+		if i > 0 {
+			splitTitle += "<b></b>"
+		}
+		splitTitle += chunk
+	}
+	splitTitle += `</A></DL>`
+	if _, err := Parse(strings.NewReader(splitTitle), Limits{}); !errors.Is(err, ErrLimitExceeded) {
+		t.Errorf("split title: got %v, want ErrLimitExceeded", err)
+	}
+
+	// Several <DD> blocks for the same record must also share one cap.
+	splitDesc := `<DL><A HREF="https://e.example">T</A><DD>` +
+		strings.Repeat("a", MaxDescriptionBytes-1) +
+		`<DD>` + strings.Repeat("b", 8) + `</DL>`
+	if _, err := Parse(strings.NewReader(splitDesc), Limits{}); !errors.Is(err, ErrLimitExceeded) {
+		t.Errorf("split description: got %v, want ErrLimitExceeded", err)
+	}
+
+	// Exactly at the cap is accepted, including the newline joining two blocks.
+	atCap := `<DL><A HREF="https://e.example">` + strings.Repeat("t", MaxTitleBytes/2) +
+		`<i></i>` + strings.Repeat("t", MaxTitleBytes-MaxTitleBytes/2) +
+		`</A><DD>` + strings.Repeat("a", 32000) +
+		`<DD>` + strings.Repeat("b", MaxDescriptionBytes-32001) + `</DL>`
+	records, err := Parse(strings.NewReader(atCap), Limits{})
+	if err != nil {
+		t.Fatalf("exactly at cap: %v", err)
+	}
+	if len(records) != 1 || len(records[0].Title) != MaxTitleBytes || len(records[0].Description) != MaxDescriptionBytes {
+		t.Fatalf("at-cap record lengths = title %d, description %d (records=%d)",
+			len(records[0].Title), len(records[0].Description), len(records))
+	}
+}
+
+func TestParseRejectsInvalidUTF8(t *testing.T) {
+	tests := []struct {
+		name string
+		html string
+		line int
+	}{
+		{"title byte", `<DL><A HREF="https://e.example">bad` + string([]byte{0xff}) + `</A></DL>`, 1},
+		{"description byte", "<DL><A HREF=\"https://e.example\">T</A><DD>ok\n" + string([]byte{0xc3, 0x28}) + "</DL>", 2},
+		{"attribute byte", `<DL><A HREF="https://e.example/` + string([]byte{0xff}) + `">T</A></DL>`, 1},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := Parse(strings.NewReader(tc.html), Limits{})
+			if err == nil || !strings.Contains(err.Error(), "not valid UTF-8") {
+				t.Fatalf("error = %v, want invalid UTF-8 error", err)
+			}
+			if !errors.Is(err, ErrMalformed) {
+				t.Errorf("error %v does not wrap ErrMalformed", err)
+			}
+			var parseErr *ParseError
+			if !errors.As(err, &parseErr) || parseErr.Line != tc.line {
+				t.Errorf("error %v: got line %d, want %d", err, parseErr.Line, tc.line)
+			}
+			// Deterministic on reparse.
+			_, again := Parse(strings.NewReader(tc.html), Limits{})
+			if again == nil || again.Error() != err.Error() {
+				t.Errorf("non-deterministic UTF-8 error: %v vs %v", err, again)
+			}
+		})
+	}
+	// An encoded U+FFFD is valid UTF-8 and stays valid after decoding.
+	valid, err := Parse(strings.NewReader(`<DL><A HREF="https://e.example">`+string([]byte{0xef, 0xbf, 0xbd})+`</A></DL>`), Limits{})
+	if err != nil || len(valid) != 1 || valid[0].Title != "\uFFFD" {
+		t.Fatalf("encoded U+FFFD: records=%v err=%v", valid, err)
+	}
+}
+
 func equalStrings(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

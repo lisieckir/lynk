@@ -41,6 +41,14 @@ func runWithInput(ctx context.Context, args []string, lookup config.LookupFunc, 
 			return runTokenCmd(ctx, args[1:], lookup, out)
 		case "bookmarks":
 			return runBookmarksCmd(ctx, args[1:], lookup, in, out)
+		default:
+			// An unrecognised command must never silently start the server:
+			// a typo such as `lynk bookmark ...` would otherwise bind a port.
+			hint := ""
+			if args[0] == "bookmark" {
+				hint = ` (did you mean "bookmarks"?)`
+			}
+			return fmt.Errorf("unknown command %q%s; expected token or bookmarks", args[0], hint)
 		}
 	}
 	return runServer(ctx, lookup, out)

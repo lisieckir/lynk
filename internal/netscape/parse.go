@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Parse decodes a Netscape bookmark file. The whole input is bounded by
@@ -28,6 +29,12 @@ func Parse(r io.Reader, limits Limits) ([]Record, error) {
 	}
 	if int64(len(data)) > effective.MaxBytes {
 		return nil, &ParseError{Line: 1, Err: fmt.Errorf("%w: input exceeds %d bytes", ErrLimitExceeded, effective.MaxBytes)}
+	}
+	// The export declares charset=UTF-8. Reject malformed UTF-8 instead of
+	// normalising it implicitly: a deterministic line-numbered error keeps the
+	// import atomic and prevents invalid bytes reaching the database/export.
+	if line, ok := invalidUTF8Line(data); !ok {
+		return nil, &ParseError{Line: line, Err: fmt.Errorf("%w: input is not valid UTF-8", ErrMalformed)}
 	}
 	p := &parser{data: data, line: 1, limits: effective, ddIndex: -1}
 	if err := p.run(); err != nil {
@@ -92,6 +99,33 @@ func (p *parser) advance(n int) {
 	p.pos += n
 }
 
+// invalidUTF8Line reports the 1-based line of the first invalid UTF-8 byte.
+// A literal U+FFFD encoded as three bytes is valid and is not reported.
+func invalidUTF8Line(data []byte) (int, bool) {
+	line := 1
+	for i := 0; i < len(data); {
+		r, size := utf8.DecodeRune(data[i:])
+		if r == utf8.RuneError && size == 1 {
+			return line, false
+		}
+		if r == '\n' {
+			line++
+		}
+		i += size
+	}
+	return line, true
+}
+
+// unescape decodes HTML entities and refuses text that would still not be
+// valid UTF-8 after decoding, keeping every persisted field well-formed.
+func (p *parser) unescape(raw string, line int) (string, error) {
+	decoded := html.UnescapeString(raw)
+	if !utf8.ValidString(decoded) {
+		return "", p.fail(line, "decoded text is not valid UTF-8")
+	}
+	return decoded, nil
+}
+
 func (p *parser) run() error {
 	for {
 		tok, err := p.next()
@@ -132,10 +166,15 @@ func (p *parser) finish() error {
 }
 
 func (p *parser) text(tok token) error {
-	decoded := html.UnescapeString(tok.text)
+	decoded, err := p.unescape(tok.text, tok.line)
+	if err != nil {
+		return err
+	}
 	switch {
 	case p.pending != nil:
-		if len(decoded) > MaxTitleBytes {
+		// Titles can be split by inline tags, so the cap must count every
+		// decoded chunk, not just the largest one.
+		if p.title.Len()+len(decoded) > MaxTitleBytes {
 			return p.limit(tok.line, "title exceeds %d bytes", MaxTitleBytes)
 		}
 		p.title.WriteString(decoded)
@@ -145,7 +184,15 @@ func (p *parser) text(tok token) error {
 		}
 		p.h3.WriteString(decoded)
 	case p.ddIndex >= 0:
-		if p.desc.Len()+len(decoded) > MaxDescriptionBytes {
+		// A bookmark may have several <DD> blocks. Count the current builder,
+		// this chunk and the text already committed for the same record (plus
+		// the newline separator added on merge), so the decoded total cannot
+		// exceed the cap across blocks.
+		total := p.desc.Len() + len(decoded)
+		if existing := p.records[p.ddIndex].Description; existing != "" {
+			total += len(existing) + 1
+		}
+		if total > MaxDescriptionBytes {
 			return p.limit(tok.line, "description exceeds %d bytes", MaxDescriptionBytes)
 		}
 		p.desc.WriteString(decoded)
@@ -443,7 +490,11 @@ func parseAttrs(raw string, line int, p *parser) (map[string]string, error) {
 				value = raw[start:i]
 			}
 		}
-		attrs[name] = html.UnescapeString(value)
+		decoded, err := p.unescape(value, line)
+		if err != nil {
+			return nil, err
+		}
+		attrs[name] = decoded
 	}
 	return attrs, nil
 }

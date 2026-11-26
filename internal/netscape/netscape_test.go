@@ -221,6 +221,49 @@ func TestExportHasNoSecretsAndBoundsRecords(t *testing.T) {
 	}
 }
 
+func TestImportRejectsOversizedAndInvalidUTF8BeforePersistence(t *testing.T) {
+	db, ids, svc := newTestDB(t, "alice")
+	ctx := context.Background()
+	chunk := strings.Repeat("x", 4096)
+	splitTitle := `<DL><A HREF="https://oversized.example">`
+	for i := 0; i < 5; i++ {
+		if i > 0 {
+			splitTitle += "<i></i>"
+		}
+		splitTitle += chunk
+	}
+	splitTitle += `</A></DL>`
+	invalidUTF8 := `<DL><A HREF="https://badutf.example">` + string([]byte{0xff}) + `</A></DL>`
+
+	for name, html := range map[string]string{"oversized": splitTitle, "invalid utf-8": invalidUTF8} {
+		t.Run(name, func(t *testing.T) {
+			sum, err := Import(ctx, db, svc, ids["alice"], strings.NewReader(html), ImportOptions{})
+			if err == nil {
+				t.Fatalf("Import succeeded for %s", name)
+			}
+			if sum != (Summary{}) {
+				t.Errorf("summary = %+v, want zero on failure", sum)
+			}
+			if got := countRows(t, db, ids["alice"]); got != 0 {
+				t.Fatalf("import persisted %d rows, want 0", got)
+			}
+		})
+	}
+
+	// The persistence boundary itself refuses oversized values even if a
+	// caller hands over a Record that did not come from Parse.
+	for name, rec := range map[string]Record{
+		"title":       {URL: "https://direct.example", Title: strings.Repeat("t", MaxTitleBytes+1)},
+		"description": {URL: "https://direct.example", Description: strings.Repeat("d", MaxDescriptionBytes+1)},
+	} {
+		t.Run("direct "+name, func(t *testing.T) {
+			if _, err := createInput(rec); !errors.Is(err, ErrLimitExceeded) {
+				t.Errorf("createInput: got %v, want ErrLimitExceeded", err)
+			}
+		})
+	}
+}
+
 func TestImportAtomicDuplicateAndOwnerIsolation(t *testing.T) {
 	db, ids, svc := newTestDB(t, "alice", "bob")
 	ctx := context.Background()

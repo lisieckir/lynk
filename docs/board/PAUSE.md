@@ -29,6 +29,9 @@ extension contract replay po aktualizacji boardu.
 P2-005 jest zamknięte. Następny krok to przygotowanie P2-006: SSRF-safe
 metadata extraction, z obowiązkowym security review i osobnym PO_REVIEW.
 
+* **P2-006 — `IN_PROGRESS`**: Iceman Free implementuje SSRF-safe metadata
+  extraction w izolowanym worktree.
+
 ## Decyzje P2-002
 
 * `lynk token create` drukuje surowy token tylko raz.

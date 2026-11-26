@@ -28,7 +28,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-007](tasks/P2-007-release-e2e.md) | P0 | Release E2E i deployment validation | Big Pickle | `DONE` | P2-006 |
 | [P2-008](tasks/P2-008-cors-options.md) | P1 | CORS i OPTIONS dla API | Hy4 Flash Free | `DONE` | P2-007 |
 | [P2-009](tasks/P2-009-web-interface.md) | P0 | Web interface MVP | Iceman Free | `DONE` | P2-008 |
-| [P2-010](tasks/P2-010-netscape-import-export.md) | P0 | Netscape HTML import/export | Hy4 Flash Free | `REVIEW` | P2-009 |
+| [P2-010](tasks/P2-010-netscape-import-export.md) | P0 | Netscape HTML import/export | Hy4 Flash Free | `BLOCKED` | P2-009 |
 
 ## Rejestr blockerów i decyzji
 
@@ -70,6 +70,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-009 | Akceptacja | Security `APPROVE`, full matrix PASS, cookie policy test/docs added; PO_REVIEW PASS | PO |
 | 2026-11-26 | P2-010 | Decyzja PO | Netscape import/export jest wymaganiem Definition of Done; bounded CLI i round-trip tests obowiązkowe | PO |
 | 2026-11-26 | P2-010 | Review pending | `043cba0` pełna macierz PASS; niezależny security/correctness review w toku | PO |
+| 2026-11-26 | P2-010 | Request changes | Symlinked-parent DB overwrite HIGH i cumulative field-cap bypass MEDIUM; poprawki zlecone | Big Pickle |
 
 ## Historia zmian tablicy
 

@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `REVIEW` |
+| Status | `BLOCKED` |
 | Priorytet | `P0` |
 | Owner | Hy4 Flash Free |
 | Faza | Phase 7 |
@@ -48,3 +48,9 @@ network fetches.
 |---|---|---|---|
 | 2026-11-26 | `IN_PROGRESS` | Hy4 Flash Free | Przydzielono import/export Phase 7 |
 | 2026-11-26 | `REVIEW` | Hy4 Flash Free | `043cba0` implementuje parser, bounded CLI, atomic import i round-trip; niezależny review w toku |
+| 2026-11-26 | `BLOCKED` | Big Pickle | Review REQUEST CHANGES: symlinked-parent DB overwrite (HIGH) and cumulative field-cap bypass (MEDIUM) |
+
+## Blockery
+
+Nie integrować `043cba0` przed naprawą destination canonicalization, cumulative
+field limits i regresyjnymi testami bezpieczeństwa oraz ponownym review.

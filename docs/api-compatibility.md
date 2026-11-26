@@ -2,14 +2,15 @@
 
 Status: Phase 0 research plus P2-003 API foundation implemented; P2-004
 search (`q`, FTS5), limit/offset pagination and the update/archive mutations;
-and P2-005 extension request replay, writable `is_archived`/`date_added`/
-`date_modified` and `GET /api/tags/` pagination. All of it is verified by
-`make test-compat` and `make test-integration`. Remaining unimplemented
-areas: metadata fetching, asset/bundle routes and newer
-Linkding search filters such as `sort`, `unread`, `shared`,
-`modified_since`/`added_since`. The endpoints covered by the foundation are
-listed below; metadata fetching, asset/bundle routes and newer filters
-remain unimplemented and are tracked as separate board work.
+P2-005 extension request replay, writable `is_archived`/`date_added`/
+`date_modified` and `GET /api/tags/` pagination; P2-006 bounded, SSRF-safe
+metadata fetching and worker lifecycle; and P2-007 real Firefox,
+Docker/Compose and proxy validation. All of it is verified by
+`make test-compat` and `make test-integration`, plus the release evidence in
+[development.md](development.md). Remaining unimplemented areas are
+asset/bundle routes and newer Linkding search filters such as `sort`,
+`unread`, `shared`, `modified_since`/`added_since`. CORS/OPTIONS is a
+documented release gap from P2-007; see below.
 
 ## Scope and sources
 
@@ -297,6 +298,88 @@ with validation and persistence) and `GET /api/tags/` `limit`/`offset`
 pagination are covered by the `internal/api/linkding` tests that
 `make test-compat` runs.
 
+### Real Firefox extension validation (P2-007)
+
+The in-process replay was complemented by a real browser run. The official
+Firefox XPI was available locally, so no "XPI unavailable" blocker applies:
+
+* linkding extension `1.15.1`, add-on ID
+  `{61a05c39-ad45-4086-946f-32adb0a40a9d}`, active in the default profile;
+* XPI SHA-256
+  `e32bfc2e21c8d4035212fac3cc2eadcd78fe7016352353df0d3400342953671d`;
+* source URI
+  `https://addons.mozilla.org/firefox/downloads/file/4860177/linkding_extension-1.15.1.xpi`;
+* browser `Mozilla Firefox 161.0`.
+
+The environment had no `geckodriver`, `xdotool`, `xte`, `ydotool`, `wmctrl`,
+`scrot`, `Xvfb` or Python Selenium/Playwright, so a GUI-driven manual click
+path was not available. Firefox itself was usable headless: a copy of the XPI
+was installed into an isolated profile
+(`/tmp/opencode/p2-007/ff-profile`), and Firefox was started with
+`--headless --new-instance --remote-debugging-port 9223
+--start-debugger-server ws:6000 --remote-allow-hosts 127.0.0.1,localhost`.
+WebDriver BiDi created a `firefox`/`161.0`/`moz:headless=true` session, and
+devtools RDP found the add-on as a debuggable web extension. The popup form
+and the extension's own API object were then driven in the real browser; this
+is browser automation of the official extension, not a mocked request replay.
+
+All extension traffic was sent through a logging reverse proxy
+(`127.0.0.1:19091` → `127.0.0.1:19090`) that redacted the token in its log.
+The observed sequence was:
+
+| Request from official extension | Status |
+|---|---:|
+| `GET /api/tags/?limit=5000` with `Authorization: Token <redacted>` | 200 |
+| `GET /api/user/profile/` with `Authorization: Token <redacted>` | 200 |
+| `GET /api/bookmarks/check/?url=<encoded marker>` | 200 |
+| `POST /api/bookmarks/?disable_scraping`, `Origin: moz-extension://…`, JSON body | 201 |
+| Second identical-shape POST (duplicate merge / extension edit) | 201 |
+| Repeat `check`, now returning `bookmark.id` | 200 |
+| `GET /api/bookmarks/?q=p2-007-firefox&limit=5` | 200 |
+| `DELETE /api/bookmarks/1/`, `Origin: moz-extension://…` | 204 |
+
+The popup reached `saveState=success` with an empty `errorMessage`. `check`
+returned `metadata` with nullable `title`/`description`/`preview_image` and
+`auto_tags=[]`; after the delete, a direct API search returned `count=0`.
+Archive/unarchive, PUT, PATCH, asset and bundle endpoints were not exercised
+because extension 1.15.1 does not call them. Raw evidence:
+`/tmp/opencode/p2-007/firefox-e2e.log` and
+`/tmp/opencode/p2-007/proxy-requests.log`.
+
+### Proxy, CORS and OPTIONS (P2-007)
+
+The reverse proxy passed `Authorization: Token <redacted>` through and Lynk
+accepted it (`200`). Pagination remained request-derived and relative:
+
+```text
+next=/api/bookmarks/?limit=1&offset=1&q=p2-007
+```
+
+so a reverse-proxy deployment does not leak an internal host in pagination
+links.
+
+CORS/OPTIONS is a concrete release gap:
+
+```text
+OPTIONS /api/bookmarks/
+  Origin: https://example.com
+  Access-Control-Request-Method: POST
+  Access-Control-Request-Headers: authorization,content-type
+  no token        -> 401
+  with token      -> 405, Allow: GET, POST
+
+GET /api/user/profile/ with Origin and token
+  -> 200, no Access-Control-* response headers
+```
+
+Application source has no `OPTIONS` route and emits no `Access-Control-*`
+headers; it also has no trusted-proxy header handling. The official extension
+is unaffected because its manifest has `http://*/*` and `https://*/*` host
+permissions and sends its token directly. A browser web client served from a
+different origin would be blocked. This was documented rather than patched in
+P2-007; the PO must either accept it as a known release limit with a separate
+owner/task, or require a scoped CORS/OPTIONS change before sign-off.
+
 ## Explicit non-requirements for Phase 1/3
 
 The current official extension does not call archive, unarchive, PUT, PATCH,
@@ -314,9 +397,9 @@ Also explicitly deferred, and visible in the API as documented no-ops:
 * **SingleFile HTML snapshots, assets and bundles** — no snapshot is
   scheduled, so `disable_html_snapshot` (like `disable_scraping`) is accepted
   and ignored, and no asset/bundle route exists;
-* **browser automation** — replay plus a manual Firefox run is the E2E gate;
-  Chrome stays explicitly unverified when the environment has no tooling for
-  it.
+* **browser automation** — replay plus the P2-007 real headless Firefox run
+  is the E2E gate; a GUI click path was unavailable in this environment, and
+  Chrome stays explicitly unverified.
 
 ## Open compatibility risks
 
@@ -330,9 +413,10 @@ Also explicitly deferred, and visible in the API as documented no-ops:
 3. The extension's current save implementation relies on Linkding's
    create-is-update-on-duplicate behavior. Implementing strict duplicate
    rejection would break the official extension.
-4. CORS, HTTPS and reverse-proxy handling must allow the browser extension to
-   send `Authorization` and JSON requests. This is a deployment and
-   integration test requirement, not an API schema change.
+4. Reverse-proxy handling of `Authorization` and request-derived pagination
+   is verified. CORS/OPTIONS remains an open release gap from P2-007; the
+   official extension works through host permissions, but a web client from
+   another origin does not. See the P2-007 section above.
 
 ## References
 

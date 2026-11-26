@@ -1,11 +1,12 @@
 # Stan projektu — aktualny
 
-Data: 2026-11-25
+Data: 2026-11-26
 
 ## Stan główny
 
-`main` zawiera P2-001 w commicie `5d265bf` oraz wyniki Docker validation.
-P2-001 jest zakończone i zaakceptowane po niezależnym review.
+`main` zawiera P2-006 (`d2b5c6b` i wcześniejsze commity security review)
+oraz start P2-007 (`8333591`). Release validation została wykonana w
+izolowanym worktree na bazie `8333591`; nie zmieniono kodu produkcyjnego.
 
 ## Zadania
 
@@ -20,19 +21,22 @@ P2-001 jest zakończone i zaakceptowane po niezależnym review.
   guard i dokumentacja zostały zintegrowane po niezależnym APPROVE.
 * **P2-005 — `DONE`**: replay kontraktu rozszerzenia, writable parity i tags
   pagination zostały zintegrowane po niezależnym APPROVE.
+* **P2-006 — `DONE`**: SSRF-safe metadata fetcher, worker lifecycle,
+  persistence/check mapping i security fixes zostały zintegrowane po APPROVE.
+* **P2-007 — `PO_REVIEW`**: pełna macierz Go/lint/build, Docker
+  build/health/restart/recreate/persistence oraz realny Firefox 161.0
+  z oficjalnym XPI 1.15.1 PASS. Proxy `Authorization` PASS. Release gate
+  czeka na decyzję PO o CORS/OPTIONS gapie.
 
 ## Punkt wznowienia
 
-P2-004 jest zamknięte. Następnym krokiem może być przydzielenie P2-005
-extension contract replay po aktualizacji boardu.
+P2-007 nie jest podpisany. Wymagana jest decyzja PO: przyjąć CORS/OPTIONS jako
+znany limit i otworzyć osobny task z ownerem, albo zlecić poprawkę przed
+sign-offem. Nie rozpoczęto P2-008.
 
-P2-005 jest zamknięte. Następny krok to przygotowanie P2-006: SSRF-safe
-metadata extraction, z obowiązkowym security review i osobnym PO_REVIEW.
-
-* **P2-006 — `DONE`**: SSRF-safe metadata fetcher, worker lifecycle,
-  persistence/check mapping i security fixes zostały zintegrowane po APPROVE.
-* **P2-007 — `IN_PROGRESS`**: Big Pickle wykonuje release/E2E i Docker
-  validation.
+Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
+[STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i
+[development.md](../development.md).
 
 ## Decyzje P2-002
 
@@ -44,6 +48,7 @@ metadata extraction, z obowiązkowym security review i osobnym PO_REVIEW.
 
 ## Zasady wznowienia
 
-1. Naprawić 6 findings lintu i ponowić `make check`.
+1. Nie zmieniać kodu produkcyjnego bez udowodnionego błędu i zakresu zadania.
 2. Wymagać niezależnego review i pełnej macierzy testów przed integracją.
 3. Nie mieszać endpointów Linkdinga z zakończonym slice'em auth.
+4. CORS/OPTIONS i dedykowany `goleak` assertion wymagają osobnych decyzji PO.

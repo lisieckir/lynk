@@ -1,8 +1,9 @@
 # Development and toolchain
 
-Status: P1-004 health endpoint implemented. The versions below were validated
-by the P1-003 smoke tests (FTS5, WAL, foreign keys, busy timeout and online
-backup); no `SPEC.md` or driver-version change was made.
+Status: P2-007 release validation is complete and awaiting a PO decision on
+the CORS/OPTIONS gap. The versions below were validated by the P1-003 smoke
+tests (FTS5, WAL, foreign keys, busy timeout and online backup) and again by
+the P2-007 matrix; no `SPEC.md` or driver-version change was made.
 
 ## Module and pinned versions
 
@@ -163,3 +164,106 @@ pinned `golangci-lint v2.15.0` kept outside the repository at
 `make test-integration` no longer reports a missing directory: it executes the
 `tests/integration` package whenever it exists, and a failing replay test
 fails the target.
+
+## P2-007 validation (2026-11-26)
+
+Validated in the Linux AMD64 worktree at `main` `8333591` with Go
+`go1.27.4-X:nodwarf5 linux/amd64`, Docker Engine `29.10.0`, Compose `5.8.0`,
+and the pinned `golangci-lint v2.15.0` kept outside the repository. The
+worktree was fast-forwarded from `74d40b5`; no production code was changed.
+Scripts and raw logs were kept under `/tmp/opencode/p2-007/`; the board task
+[P2-007](board/tasks/P2-007-release-e2e.md) is the sign-off record.
+
+### Go, lint, compatibility and build matrix
+
+`/tmp/opencode/p2-007/go-matrix.sh` ran every step with a separate log and a
+summary in `/tmp/opencode/p2-007/go-summary.txt`:
+
+| Check | Result |
+|---|---|
+| `gofmt -l .` | PASS; no files reported |
+| `go vet ./...` | PASS |
+| `go build ./...` | PASS |
+| `go test ./...` | PASS; includes `internal/worker`, `internal/metadata`, `tests/integration` |
+| `go test -race ./...` | PASS; includes `tests/integration` |
+| `make test-compat` | PASS |
+| `make test-integration` | PASS |
+| `make LINT_TOOL=<pinned v2.15.0> check` | PASS; `0 issues` |
+| `go mod tidy -diff`, `go mod verify` | PASS; no diff, all modules verified |
+| `make LINT_TOOL=<pinned v2.15.0> release` | PASS |
+
+### Docker/Compose live validation
+
+`/tmp/opencode/p2-007/docker-matrix.sh` used an isolated
+`COMPOSE_PROJECT_NAME=lynk_p2007`, host port `19090`, `LYNK_ENV=production`
+and `LYNK_BASE_URL=http://localhost:19090`. The token was created with
+`lynk token create` and is not recorded in documentation.
+
+| Step | Result |
+|---|---|
+| `docker compose config`, `make docker-release` | PASS |
+| `docker compose up -d --build` | PASS; image `sha256:37433b97848a696f81b69e725014483c65f371862a00ccbbc25c07dbc2eec212`, 30,470,977 bytes |
+| health wait / `make health` / `docker compose ps` | PASS; container `healthy`, `GET /health` → `{"status":"ok"}`, `0.0.0.0:19090->9090/tcp` |
+| API smoke with token | `profile 200`, `tags 200`, no token `401`, three `POST /api/bookmarks/` → `201`, first create `0.0055s`, `check` → `200` in `0.7218s`, paginated list `count=3`, relative `next` |
+| `docker compose restart lynk` | PASS; same CID healthy again, detail `200`, logs show graceful shutdown and restart |
+| `docker compose down` + `docker compose up -d --build` | PASS; new CID healthy, `profile 200`, `detail 200`, `count=3` with the same marker URLs, `/data/lynk.db` present and non-empty |
+| `docker stats --no-stream` | 7.766 MiB idle RSS after recreate |
+| final `down` + volume removal | PASS; isolated environment removed |
+
+### Firefox 161.0 with official extension 1.15.1
+
+The official XPI was installed and active locally, so there was no missing-XPI
+blocker. The environment had no `geckodriver`, `xdotool`, `xte`, `ydotool`,
+`wmctrl`, `scrot`, `Xvfb` or Python Selenium/Playwright, so a GUI click path
+was not used. Instead, an isolated profile with a copy of the XPI was started
+with:
+
+```sh
+firefox --headless --new-instance --profile /tmp/opencode/p2-007/ff-profile \
+  --remote-debugging-port 9223 --start-debugger-server ws:6000 \
+  --remote-allow-hosts 127.0.0.1,localhost
+```
+
+Firefox logged `WebDriver BiDi listening` and `Started devtools server on
+6000`; BiDi reported `browserName=firefox`, `browserVersion=161.0`,
+`moz:headless=true`; RDP `listAddons` found the linkding extension as a
+debuggable web extension. A logging proxy on `127.0.0.1:19091` forwarded all
+extension traffic to the container on `19090`. The extension performed:
+
+```text
+GET  /api/tags/?limit=5000                 -> 200
+GET  /api/user/profile/                    -> 200
+GET  /api/bookmarks/check/?url=<encoded>   -> 200
+POST /api/bookmarks/?disable_scraping      -> 201  (form submit)
+POST /api/bookmarks/?disable_scraping      -> 201  (duplicate merge)
+GET  /api/bookmarks/check/?url=<encoded>   -> 200  (bookmark.id=1)
+GET  /api/bookmarks/?q=p2-007-firefox&limit=5 -> 200
+DELETE /api/bookmarks/1/                   -> 204
+```
+
+Every request carried `Authorization: Token <redacted>`; the proxy log
+redacted the token. POST and DELETE carried an `Origin` of
+`moz-extension://e85c6b9b-e56d-4d6c-b28f-f4fe8904501b`. The popup's
+`saveState` was `success` with an empty `errorMessage`; the check response had
+nullable metadata and `auto_tags=[]`; after delete the API returned `count=0`.
+Raw evidence: `/tmp/opencode/p2-007/firefox-e2e.log` and
+`/tmp/opencode/p2-007/proxy-requests.log`.
+
+### CORS/OPTIONS finding
+
+The proxy passed `Authorization` through and pagination links stayed relative,
+but an `OPTIONS /api/bookmarks/` preflight with `Origin: https://example.com`
+returned `401` without a token and `405` (`Allow: GET, POST`) with a token. A
+simple `GET` with `Origin` and token returned `200` with no `Access-Control-*`
+headers. Application source has no `OPTIONS` or CORS handling and no trusted
+proxy-header handling. This is a documented release gap, not a code change in
+P2-007; PO decision is pending. See
+[api-compatibility.md](api-compatibility.md#proxy-cors-and-options-p2-007).
+
+### Metadata worker note
+
+`POST` with `disable_scraping` returned `201` in `0.0055s`, so metadata work
+did not block create. `go test -race ./...`, the worker's
+`StopIdempotent`/`EnqueueAfterStop` tests and the live restart's clean
+`shutdown complete` all passed. There is no dedicated `goleak` assertion, so
+"no leak" is observational rather than a formal test.

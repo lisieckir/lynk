@@ -1,6 +1,6 @@
 # Lynk Board — status zbiorczy
 
-Ostatnia aktualizacja: 2026-11-25  
+Ostatnia aktualizacja: 2026-11-26
 Właściciel tablicy: PO / koordynator projektu
 
 ## Legenda
@@ -25,7 +25,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-004](tasks/P2-004-linkding-search-mutations.md) | P0 | Search, pagination i mutacje bookmarków Linkdinga | MiMo-V2.6-Flash Free | `DONE` | P2-003 |
 | [P2-005](tasks/P2-005-extension-contract-replay.md) | P0 | Extension contract replay i parity pól | Nemotron Lightning Free | `DONE` | P2-004 |
 | [P2-006](tasks/P2-006-metadata-ssrf.md) | P0 | Asynchroniczne metadata extraction i SSRF protection | Iceman Free | `DONE` | P2-005 |
-| [P2-007](tasks/P2-007-release-e2e.md) | P0 | Release E2E i deployment validation | Big Pickle | `IN_PROGRESS` | P2-006 |
+| [P2-007](tasks/P2-007-release-e2e.md) | P0 | Release E2E i deployment validation | Big Pickle | `PO_REVIEW` | P2-006 |
 
 ## Rejestr blockerów i decyzji
 
@@ -50,6 +50,10 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-006 | Request changes | Re-review potwierdził parser panic, 3 lint findings, persistence/lifecycle/logging gaps | Big Pickle |
 | 2026-11-26 | P2-006 | Akceptacja | Security re-review APPROVE, `make check` 0 issues, test/race/build/integration PASS, PO_REVIEW PASS | PO |
 | 2026-11-26 | P2-007 | Decyzja PO | Firefox/release gate po domknięciu metadata i API | PO |
+| 2026-11-26 | P2-007 | Wynik E2E | Realny Firefox 161.0 + oficjalny XPI 1.15.1: profile/tags/check/save/merge/search/delete PASS przez logging proxy | PO |
+| 2026-11-26 | P2-007 | Wynik walidacji | Pełna macierz Go/lint/test/race/compat/integration/release oraz Docker build/health/restart/recreate/persistence PASS | PO |
+| 2026-11-26 | P2-007 | Release gap | Brak CORS nagłówków; `OPTIONS` bez tokenu `401`, z tokenem `405 Allow: GET, POST`. Oficjalne rozszerzenie działa przez host permissions | PO — decyzja o sign-off lub osobnym tasku |
+| 2026-11-26 | P2-007 | Zastrzeżenie | Brak dedykowanego `goleak` assertion; create nieblokujący, testy worker i race PASS, restart czyści shutdown | PO |
 | 2026-11-25 | P2-003 | Akceptacja | Finalny review APPROVE; API contract, compatibility tests, lint i race PASS | PO |
 
 ## Historia zmian tablicy
@@ -98,3 +102,6 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-006 zintegrowane (`b825ef4`, `3a3a3bf`, `d2b5c6b`) i zamknięte po security review | PO |
 | 2026-11-26 | Przydzielono P2-007 agentowi Big Pickle | PO |
 | 2026-11-25 | P1-007 zaakceptowane po niezależnym review; lint, testy i Docker validation PASS | PO |
+| 2026-11-26 | P2-007: fast-forward do `8333591` i pełna macierz Go/lint/build PASS | Big Pickle |
+| 2026-11-26 | P2-007: Docker/Compose build, health, restart, recreate i named-volume persistence PASS | Big Pickle |
+| 2026-11-26 | P2-007: realny headless Firefox + oficjalny XPI 1.15.1 E2E PASS; CORS/OPTIONS gap przekazany do decyzji PO | Big Pickle |

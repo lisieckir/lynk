@@ -435,3 +435,226 @@ The same pinned matrix above was re-run after these changes: `gofmt -l .`,
 `go test -race -count=1 ./...`, `make check` with the exact pinned
 `golangci-lint v2.15.0` path (0 issues), `make test-compat`,
 `make test-integration`, `go mod tidy -diff` and `go mod verify` — all PASS.
+
+## P2-011 validation (2026-11-26)
+
+Validated in the Linux AMD64 worktree based on `main` `ef63e0b` with Go
+`go1.27.4-X:nodwarf5 linux/amd64`, Docker Engine `29.10.0`, Compose `5.8.0`,
+and the pinned `golangci-lint v2.15.0` binary kept outside the repository at
+`/tmp/opencode/golangci-lint-v2.15.0/golangci-lint-2.15.0-linux-amd64/golangci-lint`.
+No dependencies were added. The worktree started at `233eaa2` and was reset to
+`ef63e0b` before work; P2-012 was not started.
+
+Reproducible scripts, per-step logs and raw profiles are under
+`/tmp/opencode/p2-011/` (ephemeral by design, like the P2-007 evidence):
+
+* `go-matrix.sh` → `go-summary.txt` and `*.log`;
+* `bench-profiles.sh` → `bench-summary.txt`, `bench-*.log` and `*.pprof`;
+* `search-plan.sh` → `search-plan.txt`;
+* `docker-matrix.sh` → `docker-summary.txt`, `rss.log`, `startup.log`,
+  `api-smoke.log`, `db-backup.log`, `db-restore.log`, etc.;
+* `metadata-rss.sh` → `metadata-rss.log`, `metadata-list.json`, etc.
+
+### Benchmarks and profiles
+
+Three checked-in benchmark files exercise the real service and SQLite schema:
+`internal/bookmark/benchmark_test.go` (create/read/update/delete, list paging,
+FTS search and a `runtime.ReadMemStats` snapshot),
+`internal/netscape/benchmark_test.go` (bounded parse and service-backed export)
+and `internal/metadata/benchmark_test.go` (HTML parser at a realistic page and
+at the 2 MiB fetch cap). Setup is excluded from the measured region; every
+benchmark uses `-benchmem` and profiles were taken with
+`-benchtime=2s -cpuprofile -memprofile`.
+
+Representative Linux AMD64 results from `bench-summary.txt` (`-8` = 8 CPUs):
+
+| Benchmark | ns/op | B/op | allocs/op |
+|---|---:|---:|---:|
+| `BenchmarkBookmarkCreate` | 909,590 | 9,337 | 244 |
+| `BenchmarkBookmarkGet` | 106,145 | 2,971 | 86 |
+| `BenchmarkBookmarkUpdate` | 449,272 | 8,113 | 217 |
+| `BenchmarkBookmarkDelete` | 250,122 | 168 | 5 |
+| `BenchmarkBookmarkListPagination/first_page_limit_100` | 6,263,523 | 203,794 | 4,468 |
+| `BenchmarkBookmarkListPagination/deep_page_limit_100` | 7,209,172 | 201,889 | 4,470 |
+| `BenchmarkBookmarkListPagination/large_page_limit_500` | 29,201,188 | 945,667 | 21,564 |
+| `BenchmarkBookmarkListPagination/archived_page` | 1,085,013 | 2,496 | 58 |
+| `BenchmarkBookmarkSearch/prefix` | 6,754,486 | 213,383 | 4,776 |
+| `BenchmarkBookmarkSearch/two_terms` | 7,877,329 | 212,088 | 4,780 |
+| `BenchmarkBookmarkSearch/tag` | 6,581,821 | 212,032 | 4,777 |
+| `BenchmarkBookmarkHeapSnapshot` | 5,700,828 | 201,873 | 4,468 |
+| `BenchmarkNetscapeParse/records=100` | 744,997 | 160,986 | 2,399 |
+| `BenchmarkNetscapeParse/records=1000` | 7,722,626 | 1,697,089 | 23,559 |
+| `BenchmarkNetscapeParse/records=10000` | 60,440,901 | 17,548,704 | 235,073 |
+| `BenchmarkNetscapeExport/records=100` | 7,478,274 | 332,382 | 6,621 |
+| `BenchmarkNetscapeExport/records=1000` | 87,634,000 | 3,540,850 | 66,005 |
+| `BenchmarkParseHTML/small_page_16KiB` | 66,591 | 2,824 | 44 |
+| `BenchmarkParseHTML/body_cap_2048KiB` | 5,730,547 | 2,824 | 44 |
+
+`BenchmarkBookmarkHeapSnapshot` additionally reports `3.528 heap-MiB` and
+`21.96 sys-MiB` after a 2,000-bookmark paging workload. The parse/export
+benchmarks use `b.SetBytes`, so their logs also show throughput (about
+30 MB/s for a 10,000-record Netscape document and 366 MB/s for the 2 MiB
+metadata body). The CPU profile for the bookmark suite is dominated by
+`modernc.org/sqlite/lib._sqlite3VdbeExec` (38% cumulative), with the Netscape
+profile concentrated in `parseAttrs`/`parser.next` and metadata parsing too
+small to register in a combined profile. Full `pprof -top` output is in
+`pprof-bookmark.txt`, `pprof-netscape.txt` and `pprof-metadata.txt`.
+
+### Search defect found by benchmarking
+
+The first search run exposed a real production defect, not just a benchmark
+artifact: the correlated `EXISTS(SELECT 1 FROM bookmark_search WHERE
+rowid = bookmarks.id AND bookmark_search MATCH ?)` made SQLite run an FTS5
+virtual-table scan for every candidate bookmark. `EXPLAIN QUERY PLAN` showed
+`SCAN bookmark_search EXISTS VIRTUAL TABLE INDEX 0:=M5` beneath the bookmark
+index search, and `sqlite3` measured 23.6 ms for one count over 2,000 rows.
+
+`internal/bookmark/bookmark.go` now uses the equivalent uncorrelated
+`id IN (SELECT rowid FROM bookmark_search WHERE bookmark_search MATCH ?)`.
+The plan is a single `SCAN bookmark_search VIRTUAL TABLE INDEX 0:M5` with a
+`LIST SUBQUERY` and the same count takes 0.645 ms. Results, user/archive
+filters, FTS query quoting and pagination are unchanged; only the number of
+FTS scans changed. Equal-benchtime comparisons are in
+`bench-search-before-fix.log` and `bench-search-after-fix.log`:
+
+| Search term | Before (3x) | After (3x) | Speed-up |
+|---|---:|---:|---:|
+| `need` (prefix) | 374.5 ms/op | 14.0 ms/op | ~27x |
+| `needle benchmark` | 1,777.9 ms/op | 18.6 ms/op | ~96x |
+| `needletag` | 288.6 ms/op | 7.8 ms/op | ~37x |
+
+This is the only production code change in P2-011. It is covered by the
+unchanged search compatibility/unit tests plus the full matrix below.
+
+### Resource profile vs SPEC targets
+
+| Metric (SPEC target) | Measured | Assessment |
+|---|---|---|
+| Idle RSS (10–20 MB) | 15.08–15.84 MiB, 5 samples | inside target band |
+| Normal RSS (20–40 MB) | 17.21–18.20 MiB during 300 paginated API GETs | below the lower bound: under budget, not a regression |
+| Metadata RSS (<64 MB) | 13.82–14.99 MiB during 20 live HTTPS fetches | comfortably below target |
+| External services (0) | one container, one SQLite file, no sidecar | PASS |
+| Application processes (1) | one `lynk` process, 2 bounded metadata goroutines | PASS |
+
+RSS is container `docker stats --no-stream` memory usage, not Go heap-only
+accounting. The metadata probe used public `https://example.com/` URLs with
+scraping enabled; all 20 creates returned `201`, the list returned
+`count=20`, and worker-updated titles were `Example Domain`. The design also
+bounds this path to two workers, a 100-job queue, a 2 MiB response body and
+bounded parse allocations (2,824 B/op), but no pathological large-body
+network stress test was run.
+
+### Binary, image and startup/readiness
+
+| Measurement | Result |
+|---|---:|
+| `bin/lynk` (host, `make release`) | 22,378,223 bytes |
+| `dist/lynk-linux-amd64` (`make build-linux`, static) | 22,292,978 bytes |
+| Embedded container binary | 14,561,440 bytes (`-trimpath -s -w`) |
+| Docker image | 34,012,269 bytes, `sha256:9333877173d65ad18b7095bbe4a46fb36fdc3bdc33bb17834da94dfb725dc347` |
+| Runtime user | `10152` (`uid=10152(lynk) gid=10152(lynk)`) |
+| Startup → `GET /health` ready | 329 ms (initial), 320 ms (restart), 318 ms (recreate) |
+
+Startup was measured from the container's `State.StartedAt` to the first
+successful local `/health` poll. The isolated compose project used
+`COMPOSE_PROJECT_NAME=lynk_p2011`, host port `19101`, `LYNK_ENV=production`,
+`LYNK_BASE_URL=http://127.0.0.1:19101`; its token was generated by the CLI,
+stored only in a 0600 file outside the repository and never printed in logs.
+API smoke: profile/tags 200, missing token 401, three creates 201, check 200,
+paginated search 200 with `count=3`, and 300/300 paginated load requests 200.
+
+### Restart, recreate and persistence
+
+`docker compose restart lynk` kept the same container ID, returned to
+`healthy` in 320 ms, and `GET /api/bookmarks/{id}/` stayed 200. Logs show
+`http server shutting down` → `shutdown complete` → fresh `configuration
+loaded`. `docker compose down` preserved `${PROJECT}_lynk_data`; after
+`up -d --build` a new container ID became healthy, detail stayed 200, the
+search envelope still reported `count=3`, `/data/lynk.db` was non-empty
+(98,304 bytes), and a CLI export from the recreated volume contained all
+three marker URLs. Only after all checks were complete did the script remove
+the isolated project, volume and image.
+
+### Backup and rollback instructions
+
+`make db-backup` and `make db-restore` were exercised on a separate local
+database, never on the live volume. The backup was created with SQLite's
+online `.backup`, passed `integrity_check = ok`, and after deliberately
+deleting all rows the restore was refused without `DB_RESTORE_CONFIRM=yes`,
+then succeeded with confirmation. It validated the backup, created and
+verified a safety backup of the live database, cleared `-wal`/`-shm`/`-journal`
+sidecars and restored the row (`rows_restored=1 integrity=ok`). For a Compose
+deployment, stop writers before replacing the database and point these targets
+at the mounted volume path; ordinary `docker compose down` preserves the
+volume, while `down -v` deletes it and must not be used for rollback:
+
+```sh
+make db-backup DATABASE_PATH=/path/to/lynk.db BACKUP_DIR=/path/to/backups
+DB_STOP_HOOK='docker compose stop lynk' \
+  make db-restore DATABASE_PATH=/path/to/lynk.db \
+  DB_RESTORE_FROM=/path/to/backups/lynk-YYYYMMDD-HHMMSS.db \
+  DB_RESTORE_CONFIRM=yes
+```
+
+A plain copy of a live WAL database is not a supported backup; see
+[architecture.md](architecture.md#backup-and-recovery) and SPEC sections 9.5
+and 10.
+
+### Release matrix
+
+`/tmp/opencode/p2-011/go-matrix.sh` recorded 13/13 PASS steps:
+
+| Check | Result |
+|---|---|
+| `gofmt -l .`, `go vet ./...`, `go build ./...` | PASS |
+| `go test -count=1 ./...`, `go test -race -count=1 ./...` | PASS |
+| `make test-compat`, `make test-integration` | PASS |
+| `make LINT_TOOL=<pinned v2.15.0> check` | PASS, 0 issues |
+| `go mod tidy -diff`, `go mod verify` | PASS |
+| `make benchmark` | PASS |
+| `make LINT_TOOL=<pinned v2.15.0> release` | PASS |
+| `make LINT_TOOL=<pinned v2.15.0> DOCKER_TAG=p2-011 docker-release` | PASS |
+| `docker compose config` + full live Docker/Compose script | PASS, 42/42 steps |
+
+The Docker script first failed on two harness mistakes (form-encoded POSTs and
+an extra binary path in `compose run`) and on stale load counters; the script
+was corrected and the final run was clean. No product defect was found in
+those failures.
+
+### Security review summary
+
+No unresolved high/medium security blocker was introduced by P2-011. The
+search change only removes redundant FTS scans behind the same ownership and
+archive filters; it adds no input, endpoint or logging surface.
+
+| Slice | Review status | Record |
+|---|---|---|
+| P2-002 token auth | review `APPROVE` | [P2-002](board/tasks/P2-002-token-auth-bootstrap.md) |
+| P2-006 metadata/SSRF | security `APPROVE` + PO_REVIEW | [P2-006](board/tasks/P2-006-metadata-ssrf.md) |
+| P2-007 release E2E | PO accepted; CORS gap moved to P2-008 | [P2-007](board/tasks/P2-007-release-e2e.md) |
+| P2-008 CORS/OPTIONS | security `APPROVE`, severity `NONE`, PO_REVIEW | [P2-008](board/tasks/P2-008-cors-options.md) |
+| P2-009 web sessions | security `APPROVE` + PO_REVIEW | [P2-009](board/tasks/P2-009-web-interface.md) |
+| P2-010 Netscape import/export | re-review `APPROVE` + PO_REVIEW | [P2-010](board/tasks/P2-010-netscape-import-export.md) |
+
+Phase 1 backup/restore was also accepted after its security fix pass
+([P1-005](board/tasks/P1-005-makefile.md)). The P2-011 release review and
+PO_REVIEW are still pending; this report does not self-approve them.
+
+### Known limitations
+
+* Independent release review and PO_REVIEW are not yet recorded, so the board
+  task stays in `REVIEW`; P2-012 was not started.
+* No formal `goleak` assertion exists; clean metadata worker shutdown remains
+  observational, as recorded in P2-007.
+* CPU/heap profiles come from Go test binaries on the host, not from an
+  instrumented production image; pprof stays unexposed in production.
+* RSS values are short point-in-time samples, not a long soak; the metadata
+  probe uses one public host rather than adversarial large-body traffic.
+* GUI extension E2E was not repeated here: P2-007 recorded Firefox 161.0 with
+  unmodified XPI 1.15.1, and P2-005 replays the pinned extension request
+  contract; P2-011 re-ran those suites through `make test-integration`.
+* Normal RSS is below the SPEC band's lower bound; it is reported as under
+  budget rather than silently reshaped into an exact match.
+* The `/tmp/opencode/p2-011` logs and pprof files may be removed by host
+  cleanup; the checked-in benchmarks and scripts in that directory make the
+  measurements reproducible from the repository root.

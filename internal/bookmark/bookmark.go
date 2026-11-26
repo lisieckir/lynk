@@ -429,8 +429,12 @@ func (s *Service) List(ctx context.Context, userID int64, archived bool, opts Pa
 	conditions := []string{"user_id = ?", "is_archived = ?"}
 	args := []any{userID, archived}
 	if match != "" {
-		conditions = append(conditions, `EXISTS(SELECT 1 FROM bookmark_search
-			WHERE rowid = bookmarks.id AND bookmark_search MATCH ?)`)
+		// Keep the FTS MATCH uncorrelated: SQLite evaluates this subquery once
+		// and probes bookmarks by rowid. A correlated EXISTS with
+		// rowid = bookmarks.id instead re-runs the virtual-table scan for every
+		// candidate row, which made search latency grow linearly with the whole
+		// user's bookmark count (measured in P2-011).
+		conditions = append(conditions, `id IN (SELECT rowid FROM bookmark_search WHERE bookmark_search MATCH ?)`)
 		args = append(args, match)
 	}
 	where := strings.Join(conditions, " AND ")

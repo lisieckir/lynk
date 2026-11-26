@@ -17,6 +17,21 @@ go test ./...
 go vet ./...
 ```
 
+## Bookmark import/export
+
+Netscape bookmark HTML can be migrated with explicit ownership:
+
+```sh
+lynk bookmarks import --username alice --file bookmarks.html
+lynk bookmarks import --user-id 1 --file -
+lynk bookmarks export --username alice --file exported.html
+lynk bookmarks export --user-id 1 --file -
+```
+
+See [development.md](docs/development.md#netscape-html-importexport-p2-010)
+for the tag/folder and archived/unread mapping, bounds, atomicity and clobber
+policy.
+
 ## Documentation
 
 * [Specification](docs/SPEC.md)

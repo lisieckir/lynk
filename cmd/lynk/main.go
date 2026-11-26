@@ -29,8 +29,19 @@ func main() {
 // run is separated from main so configuration, startup and shutdown behavior
 // can be tested without installing process signal handlers.
 func run(ctx context.Context, args []string, lookup config.LookupFunc, out io.Writer) error {
-	if len(args) > 0 && args[0] == "token" {
-		return runTokenCmd(ctx, args[1:], lookup, out)
+	return runWithInput(ctx, args, lookup, os.Stdin, out)
+}
+
+// runWithInput is the testable entrypoint: stdin is injected so bookmarks
+// import/export can be exercised without swapping process-level descriptors.
+func runWithInput(ctx context.Context, args []string, lookup config.LookupFunc, in io.Reader, out io.Writer) error {
+	if len(args) > 0 {
+		switch args[0] {
+		case "token":
+			return runTokenCmd(ctx, args[1:], lookup, out)
+		case "bookmarks":
+			return runBookmarksCmd(ctx, args[1:], lookup, in, out)
+		}
 	}
 	return runServer(ctx, lookup, out)
 }

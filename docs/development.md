@@ -72,6 +72,66 @@ Keep `LYNK_TRUST_PROXY_HEADERS=false` unless the reverse proxy overwrites
 forwarding headers. These controls are process-local; sessions and limiter
 state are lost on restart.
 
+## Netscape HTML import/export (P2-010)
+
+`internal/netscape` is a standard-library-only, bounded parser/serializer. The
+CLI is explicit about ownership and destination:
+
+```sh
+lynk bookmarks import --username alice --file bookmarks.html
+lynk bookmarks import --user-id 1 --file -          # stdin
+lynk bookmarks export --username alice --file out.html
+lynk bookmarks export --user-id 1 --file -         # stdout, document only
+```
+
+Exactly one of `--username` and `--user-id` is required: there is no default
+account, no owner inference from the HTML, and an unknown owner is an error.
+Import never fetches URLs and never enqueues metadata work. It opens its source
+read-only, so the source file is never overwritten. Export writes a private
+(0600) file: an existing destination is refused unless `--overwrite` is passed,
+in which case a sibling temp file is atomically renamed into place. The export
+destination is rejected when it is the database file or its WAL/sidecars.
+`--file -` writes only the Netscape document to stdout; file exports print a
+one-line summary instead. Output contains no username, token, password hash or
+profile data.
+
+### Format mapping
+
+| Netscape input | Lynk state |
+|---|---|
+| `<DT><A HREF=...>title</A>` | one bookmark URL/title for the chosen owner |
+| `ADD_DATE`, `LAST_MODIFIED` (Unix seconds) | `date_added`, `date_modified` |
+| `<DD>text` | description |
+| `TAGS="a,b"` | tags `a`, `b` |
+| `<H3>` folder ancestors | one tag `folder:<a>/<b>` (components joined by `/`) |
+| tag `lynk:archived` / `lynk:unread` | `is_archived` / `unread` flags; export re-emits them |
+
+Root `<H3>` headings are ordinary folder components (no browser-specific
+special cases). Tags are matched exactly: an unrelated tag named `work` is
+never treated as a folder or state flag. Stored URLs are written verbatim, so
+credentials a user put in URL user info are their own data; export adds no
+tokens, headers or other secrets. On a duplicate URL, the service's merge keeps
+the stored archive state and dates, as it does for the API. Export orders bookmarks by folder
+path, then `date_added` descending, then id descending, and escapes every text
+and attribute value with `html.EscapeString`. A full `FilterAll` export/import
+round trip preserves URL, title, description, tags, folder and both flags;
+Netscape has no native field for shared snapshots, favicon or preview images,
+so those are neither imported nor exported.
+
+### Bounds and failure policy
+
+Import defaults to 8 MiB / 10,000 bookmarks; export to 10,000 records. CLI
+overrides are capped at 64 MiB / 100,000 bookmarks and 100,000 exported rows.
+Additional caps bound title (16 KiB), description (64 KiB), tag count (64),
+tag length (255 bytes), folder depth (16) and folder tag length (1 KiB).
+Malformed HTML and limit breaches produce `ParseError` with a deterministic
+line number. By default any invalid record URL aborts before the single import
+transaction writes a row; `--continue-on-error` skips only invalid-URL records
+(counted as `failed`) while still committing all valid rows atomically.
+Database errors always abort and roll back. Duplicate URLs use the same
+create-or-merge path as the API (`bookmark.Service.CreateInTx`), so a re-import
+merges rather than duplicating.
+
 ## Reproducibility
 
 Use Go 1.27.4 for formatting, testing, vetting and building. The `go` directive
@@ -312,3 +372,28 @@ did not block create. `go test -race ./...`, the worker's
 `StopIdempotent`/`EnqueueAfterStop` tests and the live restart's clean
 `shutdown complete` all passed. There is no dedicated `goleak` assertion, so
 "no leak" is observational rather than a formal test.
+
+## P2-010 validation (2026-11-26)
+
+Validated in the Linux AMD64 worktree based on `main` `9891978` with Go
+`go1.27.4-X:nodwarf5` and the pinned `golangci-lint v2.15.0` binary at
+`/tmp/opencode/golangci-lint-v2.15.0/golangci-lint-2.15.0-linux-amd64/golangci-lint`
+(the exact path used by P1-007/P2-005/P2-009; no tooling was added to the
+repository). No new module dependencies were introduced.
+
+| Check | Result |
+|---|---|
+| `gofmt -l .` | PASS; no files reported |
+| `go vet ./...`, `go build ./...` | PASS |
+| `go test -count=1 ./...` | PASS; includes `internal/netscape`, `cmd/lynk` and `tests/integration` |
+| `go test -race -count=1 ./...` | PASS |
+| `make LINT_TOOL=<pinned v2.15.0> check` | PASS; fmt, vet, lint (0 issues), test |
+| `make test-compat` | PASS |
+| `make test-integration` | PASS; includes the two Netscape integration tests |
+| `go mod tidy -diff`, `go mod verify` | PASS; no diff, all modules verified |
+
+The new tests cover Netscape entities/Unicode, folder and reserved-tag mapping,
+deterministic malformed-input errors, byte/count/tag/depth limits, XSS escaping,
+deterministic and archive-filtered export, owner isolation, duplicate merging,
+atomic rollback, no metadata fetch, no secret leakage, and CLI stdout/file,
+no-clobber and destination-safety behavior.

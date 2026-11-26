@@ -95,6 +95,34 @@ func NewService(db *sql.DB) (*Service, error) {
 }
 
 func (s *Service) Create(ctx context.Context, userID int64, in CreateInput) (Bookmark, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return Bookmark{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	created, err := s.createInTx(ctx, tx, userID, in)
+	if err != nil {
+		return Bookmark{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return Bookmark{}, err
+	}
+	return created, nil
+}
+
+// CreateInTx stages the same create-or-merge operation as Create inside tx and
+// leaves the commit to the caller. It exists so a batch importer can commit an
+// entire file atomically without reimplementing (or diverging from) Linkding's
+// duplicate-merge rules. A nil transaction is rejected.
+func (s *Service) CreateInTx(ctx context.Context, tx *sql.Tx, userID int64, in CreateInput) (Bookmark, error) {
+	if tx == nil {
+		return Bookmark{}, errors.New("bookmark: nil transaction")
+	}
+	return s.createInTx(ctx, tx, userID, in)
+}
+
+func (s *Service) createInTx(ctx context.Context, tx *sql.Tx, userID int64, in CreateInput) (Bookmark, error) {
 	if userID <= 0 || strings.TrimSpace(in.URL) == "" {
 		return Bookmark{}, ErrInvalidBookmark
 	}
@@ -106,11 +134,6 @@ func (s *Service) Create(ctx context.Context, userID int64, in CreateInput) (Boo
 	if err != nil {
 		return Bookmark{}, fmt.Errorf("%w: %v", ErrInvalidBookmark, err)
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return Bookmark{}, err
-	}
-	defer func() { _ = tx.Rollback() }()
 
 	existing, err := getByNormalized(ctx, tx, userID, normalized)
 	now := s.now().UTC()
@@ -156,9 +179,6 @@ func (s *Service) Create(ctx context.Context, userID int64, in CreateInput) (Boo
 		return Bookmark{}, err
 	}
 	if err != nil {
-		return Bookmark{}, err
-	}
-	if err := tx.Commit(); err != nil {
 		return Bookmark{}, err
 	}
 	return existing, nil
@@ -277,6 +297,20 @@ func (s *Service) Get(ctx context.Context, userID, id int64) (Bookmark, error) {
 // rawURL. Linkding's check endpoint uses the same normalized lookup as create,
 // so a caller cannot discover another user's row.
 func (s *Service) GetByURL(ctx context.Context, userID int64, rawURL string) (Bookmark, error) {
+	return s.getByURL(ctx, s.db, userID, rawURL)
+}
+
+// GetByURLInTx is GetByURL scoped to an open transaction. Batch importers use
+// it to classify a row as create or merge against the same uncommitted state
+// their writes observe; a nil transaction is rejected.
+func (s *Service) GetByURLInTx(ctx context.Context, tx *sql.Tx, userID int64, rawURL string) (Bookmark, error) {
+	if tx == nil {
+		return Bookmark{}, errors.New("bookmark: nil transaction")
+	}
+	return s.getByURL(ctx, tx, userID, rawURL)
+}
+
+func (s *Service) getByURL(ctx context.Context, q queryer, userID int64, rawURL string) (Bookmark, error) {
 	if userID <= 0 || strings.TrimSpace(rawURL) == "" {
 		return Bookmark{}, ErrInvalidBookmark
 	}
@@ -284,7 +318,7 @@ func (s *Service) GetByURL(ctx context.Context, userID int64, rawURL string) (Bo
 	if err != nil {
 		return Bookmark{}, fmt.Errorf("%w: %v", ErrInvalidBookmark, err)
 	}
-	b, err := getByNormalized(ctx, s.db, userID, normalized)
+	b, err := getByNormalized(ctx, q, userID, normalized)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Bookmark{}, ErrNotFound
 	}

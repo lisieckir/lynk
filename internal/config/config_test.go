@@ -18,14 +18,18 @@ func lookupFrom(values map[string]string) LookupFunc {
 
 func TestDefaultMatchesSpec(t *testing.T) {
 	want := Config{
-		Env:           EnvProduction,
-		HTTPAddr:      ":9090",
-		DataDir:       "/data",
-		DatabasePath:  "/data/lynk.db",
-		LogLevel:      slog.LevelInfo,
-		BaseURL:       "https://lynk.example.com",
-		HealthTimeout: 2 * time.Second,
-		CORS:          cors.DefaultOptions(),
+		Env:                  EnvProduction,
+		HTTPAddr:             ":9090",
+		DataDir:              "/data",
+		DatabasePath:         "/data/lynk.db",
+		LogLevel:             slog.LevelInfo,
+		BaseURL:              "https://lynk.example.com",
+		HealthTimeout:        2 * time.Second,
+		CORS:                 cors.DefaultOptions(),
+		LoginRateLimitMax:    10,
+		LoginRateLimitWindow: time.Minute,
+		WebMaxSessions:       10000,
+		TrustProxyHeaders:    false,
 	}
 	if got := Default(); got != want {
 		t.Fatalf("Default() = %+v, want %+v", got, want)

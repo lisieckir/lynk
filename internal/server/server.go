@@ -28,29 +28,37 @@ const (
 )
 
 type Config struct {
-	Addr              string
-	ReadHeaderTimeout time.Duration
-	ReadTimeout       time.Duration
-	WriteTimeout      time.Duration
-	IdleTimeout       time.Duration
-	ShutdownTimeout   time.Duration
-	ReadinessTimeout  time.Duration
-	SecureCookies     bool
+	Addr                 string
+	ReadHeaderTimeout    time.Duration
+	ReadTimeout          time.Duration
+	WriteTimeout         time.Duration
+	IdleTimeout          time.Duration
+	ShutdownTimeout      time.Duration
+	ReadinessTimeout     time.Duration
+	SecureCookies        bool
+	LoginRateLimitMax    int
+	LoginRateLimitWindow time.Duration
+	WebMaxSessions       int
+	TrustProxyHeaders    bool
 	// CORS applies only to /api routes. /health stays public and unchanged.
 	CORS cors.Options
 }
 
 func DefaultConfig(addr string) Config {
 	return Config{
-		Addr:              addr,
-		ReadHeaderTimeout: DefaultReadHeaderTimeout,
-		ReadTimeout:       DefaultReadTimeout,
-		WriteTimeout:      DefaultWriteTimeout,
-		IdleTimeout:       DefaultIdleTimeout,
-		ShutdownTimeout:   shutdown.DefaultTimeout,
-		ReadinessTimeout:  health.DefaultTimeout,
-		SecureCookies:     false,
-		CORS:              cors.DefaultOptions(),
+		Addr:                 addr,
+		ReadHeaderTimeout:    DefaultReadHeaderTimeout,
+		ReadTimeout:          DefaultReadTimeout,
+		WriteTimeout:         DefaultWriteTimeout,
+		IdleTimeout:          DefaultIdleTimeout,
+		ShutdownTimeout:      shutdown.DefaultTimeout,
+		ReadinessTimeout:     health.DefaultTimeout,
+		SecureCookies:        false,
+		LoginRateLimitMax:    10,
+		LoginRateLimitWindow: time.Minute,
+		WebMaxSessions:       10000,
+		TrustProxyHeaders:    false,
+		CORS:                 cors.DefaultOptions(),
 	}
 }
 
@@ -90,7 +98,13 @@ func buildHandler(db *sql.DB, api http.Handler, timeout time.Duration, opts cors
 	}
 	mux := handlerWithChecker(db, timeout)
 	// Mount web UI (outside /api, outside /health)
-	webHandler, err := web.NewHandler(db, logger, web.Config{SecureCookie: secureCookies})
+	webHandler, err := web.NewHandler(db, logger, web.Config{
+		SecureCookie:         secureCookies,
+		LoginRateLimitMax:    10,
+		LoginRateLimitWindow: time.Minute,
+		WebMaxSessions:       10000,
+		TrustProxyHeaders:    false,
+	})
 	if err != nil {
 		logger.Error("failed to create web handler", "error", err)
 	} else {

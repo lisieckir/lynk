@@ -48,7 +48,7 @@ func (h *Handler) handleLoginGet(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-	ip := clientIP(r)
+	ip := clientIP(r, h.trustProxyHeaders)
 	if h.loginLimiter != nil && !h.loginLimiter.allow(ip) {
 		http.Redirect(w, r, "/login?err=too+many+attempts", http.StatusSeeOther)
 		return

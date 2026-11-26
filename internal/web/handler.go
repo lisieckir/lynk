@@ -26,19 +26,24 @@ var templatesFS embed.FS
 var staticFS embed.FS
 
 type Handler struct {
-	db           *sql.DB
-	service      *bookmark.Service
-	sessions     *SessionStore
-	logger       *slog.Logger
-	secure       bool // Secure cookie flag (true in production)
-	tmpl         *template.Template
-	static       http.Handler
-	loginLimiter *loginRateLimiter
+	db                *sql.DB
+	service           *bookmark.Service
+	sessions          *SessionStore
+	logger            *slog.Logger
+	secure            bool // Secure cookie flag (true in production)
+	tmpl              *template.Template
+	static            http.Handler
+	loginLimiter      *loginRateLimiter
+	trustProxyHeaders bool
 }
 
 type Config struct {
-	SecureCookie bool
-	SessionTTL   time.Duration
+	SecureCookie         bool
+	SessionTTL           time.Duration
+	LoginRateLimitMax    int
+	LoginRateLimitWindow time.Duration
+	WebMaxSessions       int
+	TrustProxyHeaders    bool
 }
 
 func NewHandler(db *sql.DB, logger *slog.Logger, cfg Config) (*Handler, error) {
@@ -67,14 +72,27 @@ func NewHandler(db *sql.DB, logger *slog.Logger, cfg Config) (*Handler, error) {
 	} else {
 		staticHandler = http.NotFoundHandler()
 	}
+	maxSessions := cfg.WebMaxSessions
+	if maxSessions <= 0 {
+		maxSessions = 10000
+	}
+	rlMax := cfg.LoginRateLimitMax
+	if rlMax <= 0 {
+		rlMax = 10
+	}
+	rlWindow := cfg.LoginRateLimitWindow
+	if rlWindow <= 0 {
+		rlWindow = time.Minute
+	}
 	return &Handler{
-		db:           db,
-		service:      svc,
-		sessions:     NewSessionStore(ttl, 10000),
-		logger:       logger,
-		secure:       cfg.SecureCookie,
-		tmpl:         tmpl,
-		static:       staticHandler,
-		loginLimiter: newLoginRateLimiter(10, time.Minute),
+		db:                db,
+		service:           svc,
+		sessions:          NewSessionStore(ttl, maxSessions),
+		logger:            logger,
+		secure:            cfg.SecureCookie,
+		tmpl:              tmpl,
+		static:            staticHandler,
+		loginLimiter:      newLoginRateLimiter(rlMax, rlWindow),
+		trustProxyHeaders: cfg.TrustProxyHeaders,
 	}, nil
 }

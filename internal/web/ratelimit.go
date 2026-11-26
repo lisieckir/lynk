@@ -1,6 +1,7 @@
 package web
 
 import (
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -30,27 +31,23 @@ func newLoginRateLimiter(maxAttempts int, window time.Duration) *loginRateLimite
 	}
 }
 
-func clientIP(r *http.Request) string {
-	// Prefer X-Forwarded-For if present (take first), else RemoteAddr
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		if len(parts) > 0 {
-			return strings.TrimSpace(parts[0])
-		}
-	}
-	addr := r.RemoteAddr
-	// strip port
-	if idx := strings.LastIndex(addr, ":"); idx >= 0 {
-		// handle IPv6 like [::1]:port
-		if strings.Contains(addr, "]") {
-			if j := strings.LastIndex(addr, "]:"); j >= 0 {
-				return addr[:j+1]
+func clientIP(r *http.Request, trustProxy bool) string {
+	if trustProxy {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			parts := strings.Split(xff, ",")
+			if len(parts) > 0 {
+				ip := strings.TrimSpace(parts[0])
+				if ip != "" {
+					return ip
+				}
 			}
-		} else {
-			return addr[:idx]
 		}
 	}
-	return addr
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 func (rl *loginRateLimiter) allow(key string) bool {
@@ -59,7 +56,6 @@ func (rl *loginRateLimiter) allow(key string) bool {
 	now := rl.now()
 	cutoff := now.Add(-rl.window)
 	times := rl.attempts[key]
-	// filter old
 	n := 0
 	for _, t := range times {
 		if t.After(cutoff) {

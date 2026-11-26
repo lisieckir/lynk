@@ -62,19 +62,28 @@ type Config struct {
 	// CORS is opt-in: its default has no allowed origins, so no browser
 	// origin is granted Access-Control-* headers until one is configured.
 	CORS cors.Options
+	// Web/login rate limiting and session limits
+	LoginRateLimitMax    int
+	LoginRateLimitWindow time.Duration
+	WebMaxSessions       int
+	TrustProxyHeaders    bool
 }
 
 // Default returns the values documented in SPEC.md section 8.
 func Default() Config {
 	return Config{
-		Env:           EnvProduction,
-		HTTPAddr:      ":9090",
-		DataDir:       "/data",
-		DatabasePath:  "/data/lynk.db",
-		LogLevel:      slog.LevelInfo,
-		BaseURL:       "https://lynk.example.com",
-		HealthTimeout: defaultHealthTimeout,
-		CORS:          cors.DefaultOptions(),
+		Env:                  EnvProduction,
+		HTTPAddr:             ":9090",
+		DataDir:              "/data",
+		DatabasePath:         "/data/lynk.db",
+		LogLevel:             slog.LevelInfo,
+		BaseURL:              "https://lynk.example.com",
+		HealthTimeout:        defaultHealthTimeout,
+		CORS:                 cors.DefaultOptions(),
+		LoginRateLimitMax:    10,
+		LoginRateLimitWindow: time.Minute,
+		WebMaxSessions:       10000,
+		TrustProxyHeaders:    false,
 	}
 }
 

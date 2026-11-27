@@ -51,6 +51,7 @@ func (h *Handler) handleTokensCreatePost(w http.ResponseWriter, r *http.Request)
 		http.Redirect(w, r, "/settings/tokens?err=create+failed", http.StatusSeeOther)
 		return
 	}
+	h.logger.Info("security_event", "event", "token_created", "user_id", wu.ID, "token_id", info.ID, "prefix", info.Prefix)
 	if c, err := r.Cookie(SessionCookieName); err == nil && c.Value != "" {
 		h.sessions.SetPendingToken(c.Value, info.Token)
 	}
@@ -79,5 +80,6 @@ func (h *Handler) handleTokensRevokePost(w http.ResponseWriter, r *http.Request)
 		http.Redirect(w, r, "/settings/tokens?err=revoke+failed", http.StatusSeeOther)
 		return
 	}
+	h.logger.Info("security_event", "event", "token_revoked", "user_id", wu.ID, "token_id", tid)
 	http.Redirect(w, r, "/settings/tokens", http.StatusSeeOther)
 }

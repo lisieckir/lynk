@@ -34,6 +34,7 @@ type Handler struct {
 	tmpl              *template.Template
 	static            http.Handler
 	loginLimiter      *loginRateLimiter
+	registerLimiter   *loginRateLimiter
 	trustProxyHeaders bool
 }
 
@@ -93,6 +94,7 @@ func NewHandler(db *sql.DB, logger *slog.Logger, cfg Config) (*Handler, error) {
 		tmpl:              tmpl,
 		static:            staticHandler,
 		loginLimiter:      newLoginRateLimiter(rlMax, rlWindow),
+		registerLimiter:   newLoginRateLimiter(rlMax, rlWindow),
 		trustProxyHeaders: cfg.TrustProxyHeaders,
 	}, nil
 }

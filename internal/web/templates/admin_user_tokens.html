@@ -1,0 +1,50 @@
+{{define "admin_user_tokens"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tokens for {{.User.Username}} - Lynk Admin</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <h1>Lynk - Admin Tokens</h1>
+      <nav>
+        <a href="/admin/users">Back to users</a>
+      </nav>
+    </header>
+    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
+    <h2>Tokens for {{.User.Username}} (id={{.User.ID}})</h2>
+    {{if .Tokens}}
+    <table class="bookmarks">
+      <thead><tr><th>ID</th><th>Name</th><th>Prefix</th><th>Created</th><th>Revoked</th><th>Action</th></tr></thead>
+      <tbody>
+      {{range .Tokens}}
+        <tr>
+          <td>{{.ID}}</td>
+          <td>{{.Name}}</td>
+          <td>{{.Prefix}}...</td>
+          <td>{{.CreatedAt}}</td>
+          <td>{{if .RevokedAt}}{{.RevokedAt}}{{else}}active{{end}}</td>
+          <td>
+            {{if not .RevokedAt}}
+            <form method="POST" action="/admin/users/{{$.User.ID}}/tokens/revoke" class="inline">
+              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+              <input type="hidden" name="token_id" value="{{.ID}}">
+              <button type="submit">Revoke</button>
+            </form>
+            {{end}}
+          </td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p>No tokens.</p>
+    {{end}}
+  </div>
+</body>
+</html>
+{{end}}

@@ -38,6 +38,8 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/users", securityHeaders(h.requireAdmin(h.handleAdminUsersGet)))
 	mux.HandleFunc("POST /admin/users", securityHeaders(h.requireAdmin(h.handleAdminUsersPost)))
 	mux.HandleFunc("POST /admin/users/action", securityHeaders(h.requireAdmin(h.handleAdminUsersActionPost)))
+	mux.HandleFunc("GET /admin/users/", securityHeaders(h.requireAdmin(h.handleAdminUserTokensGet)))
+	mux.HandleFunc("POST /admin/users/", securityHeaders(h.requireAdmin(h.handleAdminUserTokensRevokePost)))
 	// Bookmark actions
 	mux.HandleFunc("GET /bookmarks/", securityHeaders(h.requireAuth(h.handleBookmarkGetSubpath)))
 	mux.HandleFunc("POST /bookmarks/", securityHeaders(h.requireAuth(h.handleBookmarkByIDPost)))

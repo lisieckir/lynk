@@ -43,6 +43,7 @@
           <td>{{.Role}}</td>
           <td>{{if .Disabled}}yes{{else}}no{{end}}</td>
           <td>
+            <a href="/admin/users/{{.ID}}/tokens">Tokens</a>
             {{if .Disabled}}
             <form method="POST" action="/admin/users/action" class="inline">
               <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
@@ -62,7 +63,7 @@
               <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
               <input type="hidden" name="action" value="reset_password">
               <input type="hidden" name="user_id" value="{{.ID}}">
-              <input type="text" name="new_password" placeholder="new pass" required style="width:90px;">
+              <input type="text" name="new_password" placeholder="new pass" required style="width:90px;" maxlength="72">
               <button type="submit">Reset PW</button>
             </form>
           </td>

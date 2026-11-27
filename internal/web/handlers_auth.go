@@ -113,6 +113,11 @@ func (h *Handler) handleRegisterGet(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	ip := clientIP(r, h.trustProxyHeaders)
+	if h.registerLimiter != nil && !h.registerLimiter.allow(ip) {
+		http.Redirect(w, r, "/register?err=too+many+attempts", http.StatusSeeOther)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Redirect(w, r, "/register?err=invalid+form", http.StatusSeeOther)
 		return
@@ -178,6 +183,7 @@ func (h *Handler) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/register?err=registration+failed", http.StatusSeeOther)
 		return
 	}
+	h.logger.Info("security_event", "event", "user_registered", "user_id", uid, "username", username)
 	// Auto-login after register
 	sid, _, err := h.sessions.Create(uid, 0)
 	if err != nil {
@@ -213,13 +219,16 @@ func (h *Handler) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	if token != "" && password == "" && username == "" {
 		user, err := auth.LookupByToken(r.Context(), h.db, token)
 		if err != nil {
+			h.logger.Info("security_event", "event", "login_failure", "method", "token")
 			http.Redirect(w, r, "/login?err=invalid+credentials", http.StatusSeeOther)
 			return
 		}
 		if user.Disabled {
+			h.logger.Info("security_event", "event", "login_failure", "method", "token", "reason", "disabled")
 			http.Redirect(w, r, "/login?err=invalid+credentials", http.StatusSeeOther)
 			return
 		}
+		h.logger.Info("security_event", "event", "login_success", "method", "token", "user_id", user.ID)
 		if h.loginLimiter != nil {
 			h.loginLimiter.reset(ip)
 		}
@@ -242,9 +251,11 @@ func (h *Handler) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := auth.AuthenticatePassword(r.Context(), h.db, username, password)
 	if err != nil {
+		h.logger.Info("security_event", "event", "login_failure", "method", "password")
 		http.Redirect(w, r, "/login?err=invalid+credentials", http.StatusSeeOther)
 		return
 	}
+	h.logger.Info("security_event", "event", "login_success", "method", "password", "user_id", user.ID)
 	if h.loginLimiter != nil {
 		h.loginLimiter.reset(ip)
 	}

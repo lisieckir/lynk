@@ -37,11 +37,12 @@ func (h *Handler) handleAdminUsersPost(w http.ResponseWriter, r *http.Request) {
 	}
 	username := r.FormValue("username")
 	password := r.FormValue("password")
-	_, err := auth.CreateUser(r.Context(), h.db, username, password)
+	newUser, err := auth.CreateUser(r.Context(), h.db, username, password)
 	if err != nil {
 		http.Redirect(w, r, "/admin/users?err=create+failed", http.StatusSeeOther)
 		return
 	}
+	h.logger.Info("security_event", "event", "admin_user_created", "user_id", newUser.ID, "username", newUser.Username)
 	http.Redirect(w, r, "/admin/users?ok=created", http.StatusSeeOther)
 }
 
@@ -69,17 +70,20 @@ func (h *Handler) handleAdminUsersActionPost(w http.ResponseWriter, r *http.Requ
 			http.Redirect(w, r, "/admin/users?err=action+failed", http.StatusSeeOther)
 			return
 		}
+		h.logger.Info("security_event", "event", "user_disabled", "target_user_id", uid)
 	case "enable":
 		if err := auth.SetUserDisabled(r.Context(), h.db, uid, false); err != nil {
 			http.Redirect(w, r, "/admin/users?err=action+failed", http.StatusSeeOther)
 			return
 		}
+		h.logger.Info("security_event", "event", "user_enabled", "target_user_id", uid)
 	case "reset_password":
 		pw := r.FormValue("new_password")
 		if err := auth.ResetPassword(r.Context(), h.db, uid, pw); err != nil {
 			http.Redirect(w, r, "/admin/users?err=reset+failed", http.StatusSeeOther)
 			return
 		}
+		h.logger.Info("security_event", "event", "password_reset", "target_user_id", uid)
 	default:
 		http.Redirect(w, r, "/admin/users?err=unknown+action", http.StatusSeeOther)
 		return

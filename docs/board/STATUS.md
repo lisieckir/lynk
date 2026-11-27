@@ -83,6 +83,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-27 | P2-012 | Request changes | Security review found three HIGH issues, session/revoke/audit gaps and missing required tests | Big Pickle |
 | 2026-11-27 | P2-012 | Request changes | `cdbf56a` fixes core HIGHs; remaining admin token UI/audit/rate-limit/tests/Docker gaps assigned | PO |
 | 2026-11-27 | P2-012 | Request changes | Second-pass UI/logging changes uncommitted; critical regressions and isolated Docker smoke still required | PO |
+| 2026-11-27 | P2-012 | Request changes | UI/logging committed and health smoke PASS; required account regression tests/full register-token-API flow still missing | PO |
 
 ## Historia zmian tablicy
 

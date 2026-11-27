@@ -60,6 +60,7 @@ pierwszego administratora.
 | 2026-11-27 | `BLOCKED` | Big Pickle | REQUEST CHANGES: register CSRF HIGH, concurrent first-admin HIGH, token URL leak HIGH, stale sessions/admin revoke/audit/tests gaps |
 | 2026-11-27 | `BLOCKED` | PO | `cdbf56a` fixes HIGH/session epoch, but admin token UI, audit logs, registration limit, full regressions and Docker smoke remain |
 | 2026-11-27 | `BLOCKED` | PO | Second pass exists only uncommitted; critical regression tests and isolated Docker smoke remain outstanding |
+| 2026-11-27 | `BLOCKED` | PO | `8eb8abc`/`a4c2abf` committed UI/logging/docs and health smoke, but acceptance-critical account regression tests and full flow smoke remain |
 
 ## Blockery
 

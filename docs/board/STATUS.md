@@ -82,6 +82,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-27 | P2-012 | Review pending | Implementation and basic matrix PASS; independent security review required | PO |
 | 2026-11-27 | P2-012 | Request changes | Security review found three HIGH issues, session/revoke/audit gaps and missing required tests | Big Pickle |
 | 2026-11-27 | P2-012 | Request changes | `cdbf56a` fixes core HIGHs; remaining admin token UI/audit/rate-limit/tests/Docker gaps assigned | PO |
+| 2026-11-27 | P2-012 | Request changes | Second-pass UI/logging changes uncommitted; critical regressions and isolated Docker smoke still required | PO |
 
 ## Historia zmian tablicy
 

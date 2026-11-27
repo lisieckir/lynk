@@ -38,8 +38,9 @@ security reviews i PO sign-off są zakończone.
 * **P2-011 — `DONE`**: benchmarki, profile, resource measurements,
   FTS optimization i Docker/release matrix zostały zaakceptowane po
   niezależnym release `APPROVE`.
-* **P2-012 — `REVIEW`**: implementacja kont, ról admina, password login,
-  token UI i admin management czeka na niezależny security review.
+* **P2-012 — `BLOCKED`**: security review wykrył register CSRF, concurrent
+  first-admin i token URL leak HIGH oraz session/revoke/audit/test gaps;
+  poprawki są zlecone.
 
 P2-011 jest zamknięte. P2-012 rozszerza MVP o pełny account lifecycle i admin
 management; nie rozpoczynać kolejnego zależnego slice'a przed jego review.

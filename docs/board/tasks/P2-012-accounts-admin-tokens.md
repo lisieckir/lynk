@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `REVIEW` |
+| Status | `BLOCKED` |
 | Priorytet | `P0` |
 | Owner | Iceman Free |
 | Faza | Phase 3/5 auth hardening |
@@ -57,3 +57,9 @@ pierwszego administratora.
 |---|---|---|---|
 | 2026-11-27 | `IN_PROGRESS` | Iceman Free | Przydzielono account/admin/token lifecycle |
 | 2026-11-27 | `REVIEW` | Iceman Free | `70c96fe`/`3f58478` implementują lifecycle; niezależny security review w toku |
+| 2026-11-27 | `BLOCKED` | Big Pickle | REQUEST CHANGES: register CSRF HIGH, concurrent first-admin HIGH, token URL leak HIGH, stale sessions/admin revoke/audit/tests gaps |
+
+## Blockery
+
+Nie integrować `70c96fe` przed naprawą wszystkich HIGH/MEDIUM findings,
+pełnym test matrix i ponownym niezależnym security review.

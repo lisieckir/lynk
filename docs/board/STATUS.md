@@ -30,7 +30,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-009](tasks/P2-009-web-interface.md) | P0 | Web interface MVP | Iceman Free | `DONE` | P2-008 |
 | [P2-010](tasks/P2-010-netscape-import-export.md) | P0 | Netscape HTML import/export | Hy4 Flash Free | `DONE` | P2-009 |
 | [P2-011](tasks/P2-011-performance-release.md) | P0 | Performance, resource profile i final release gate | Big Pickle | `DONE` | P2-010 |
-| [P2-012](tasks/P2-012-accounts-admin-tokens.md) | P0 | Konta, role admina i tokeny API | Iceman Free | `REVIEW` | P2-011 |
+| [P2-012](tasks/P2-012-accounts-admin-tokens.md) | P0 | Konta, role admina i tokeny API | Iceman Free | `BLOCKED` | P2-011 |
 
 ## Rejestr blockerów i decyzji
 
@@ -80,6 +80,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-011 | Akceptacja PO | Release review `APPROVE`, FTS differential PASS, full matrix/Docker/resource evidence PASS | PO |
 | 2026-11-27 | P2-012 | Decyzja PO | Account signup, first-admin role, admin user management and UI API-token creation required | PO |
 | 2026-11-27 | P2-012 | Review pending | Implementation and basic matrix PASS; independent security review required | PO |
+| 2026-11-27 | P2-012 | Request changes | Security review found three HIGH issues, session/revoke/audit gaps and missing required tests | Big Pickle |
 
 ## Historia zmian tablicy
 

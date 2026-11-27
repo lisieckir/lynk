@@ -1,0 +1,76 @@
+{{define "admin_users"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Users - Lynk</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <h1>Lynk - Admin</h1>
+      <nav>
+        <a href="/">Bookmarks</a> |
+        <a href="/settings/tokens">Tokens</a> |
+        <a href="/admin/users">Admin Users</a>
+        <form method="POST" action="/logout" class="inline">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button type="submit" class="linklike">Logout</button>
+        </form>
+      </nav>
+    </header>
+    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
+    {{if .Success}}<div class="success">{{.Success}}</div>{{end}}
+    <h2>Create user</h2>
+    <form method="POST" action="/admin/users">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required>
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required>
+      <button type="submit">Create user</button>
+    </form>
+    <h2>Users</h2>
+    <table class="bookmarks">
+      <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Disabled</th><th>Actions</th></tr></thead>
+      <tbody>
+      {{range .Users}}
+        <tr>
+          <td>{{.ID}}</td>
+          <td>{{.Username}}</td>
+          <td>{{.Role}}</td>
+          <td>{{if .Disabled}}yes{{else}}no{{end}}</td>
+          <td>
+            {{if .Disabled}}
+            <form method="POST" action="/admin/users/action" class="inline">
+              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+              <input type="hidden" name="action" value="enable">
+              <input type="hidden" name="user_id" value="{{.ID}}">
+              <button type="submit">Enable</button>
+            </form>
+            {{else}}
+            <form method="POST" action="/admin/users/action" class="inline">
+              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+              <input type="hidden" name="action" value="disable">
+              <input type="hidden" name="user_id" value="{{.ID}}">
+              <button type="submit">Disable</button>
+            </form>
+            {{end}}
+            <form method="POST" action="/admin/users/action" class="inline">
+              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+              <input type="hidden" name="action" value="reset_password">
+              <input type="hidden" name="user_id" value="{{.ID}}">
+              <input type="text" name="new_password" placeholder="new pass" required style="width:90px;">
+              <button type="submit">Reset PW</button>
+            </form>
+          </td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
+{{end}}

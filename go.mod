@@ -2,7 +2,10 @@ module github.com/lisieckir/lynk
 
 go 1.27.4
 
-require modernc.org/sqlite v1.63.0
+require (
+	golang.org/x/crypto v0.36.0
+	modernc.org/sqlite v1.63.0
+)
 
 require (
 	github.com/dustin/go-humanize v1.1.0 // indirect

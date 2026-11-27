@@ -17,11 +17,12 @@ var (
 	ErrNotFound = errors.New("user not found")
 )
 
-// Identity is the minimal user record needed by owner-scoped CLI commands.
-// It deliberately carries no credentials or token material.
+// Identity is the minimal user record needed by owner-scoped CLI commands and web context.
 type Identity struct {
 	ID       int64
 	Username string
+	Role     string
+	Disabled bool
 }
 
 // LookupByUsername resolves an explicitly supplied username to a user identity.
@@ -34,13 +35,15 @@ func LookupByUsername(ctx context.Context, db *sql.DB, username string) (Identit
 		return Identity{}, ErrNotFound
 	}
 	var identity Identity
-	err := db.QueryRowContext(ctx, `SELECT id, username FROM users WHERE username = ?`, username).Scan(&identity.ID, &identity.Username)
+	var disabled int
+	err := db.QueryRowContext(ctx, `SELECT id, username, role, disabled FROM users WHERE username = ?`, username).Scan(&identity.ID, &identity.Username, &identity.Role, &disabled)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Identity{}, ErrNotFound
 	}
 	if err != nil {
 		return Identity{}, fmt.Errorf("lookup user by username: %w", err)
 	}
+	identity.Disabled = disabled != 0
 	return identity, nil
 }
 
@@ -54,13 +57,15 @@ func LookupByID(ctx context.Context, db *sql.DB, id int64) (Identity, error) {
 		return Identity{}, ErrNotFound
 	}
 	var identity Identity
-	err := db.QueryRowContext(ctx, `SELECT id, username FROM users WHERE id = ?`, id).Scan(&identity.ID, &identity.Username)
+	var disabled int
+	err := db.QueryRowContext(ctx, `SELECT id, username, role, disabled FROM users WHERE id = ?`, id).Scan(&identity.ID, &identity.Username, &identity.Role, &disabled)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Identity{}, ErrNotFound
 	}
 	if err != nil {
 		return Identity{}, fmt.Errorf("lookup user by id: %w", err)
 	}
+	identity.Disabled = disabled != 0
 	return identity, nil
 }
 

@@ -22,12 +22,22 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	// Public
 	mux.HandleFunc("GET /login", securityHeaders(h.handleLoginGet))
 	mux.HandleFunc("POST /login", securityHeaders(h.handleLoginPost))
+	mux.HandleFunc("GET /register", securityHeaders(h.handleRegisterGet))
+	mux.HandleFunc("POST /register", securityHeaders(h.handleRegisterPost))
 	// Authenticated
 	mux.HandleFunc("GET /{$}", securityHeaders(h.requireAuth(h.handleBookmarksList)))
 	mux.HandleFunc("GET /bookmarks", securityHeaders(h.requireAuth(h.handleBookmarksList)))
 	mux.HandleFunc("GET /bookmarks/new", securityHeaders(h.requireAuth(h.handleBookmarkNewGet)))
 	mux.HandleFunc("POST /bookmarks", securityHeaders(h.requireAuth(h.handleBookmarkCreatePost)))
 	mux.HandleFunc("POST /logout", securityHeaders(h.requireAuth(h.handleLogoutPost)))
+	// Tokens (user)
+	mux.HandleFunc("GET /settings/tokens", securityHeaders(h.requireAuth(h.handleTokensGet)))
+	mux.HandleFunc("POST /settings/tokens", securityHeaders(h.requireAuth(h.handleTokensCreatePost)))
+	mux.HandleFunc("POST /settings/tokens/revoke", securityHeaders(h.requireAuth(h.handleTokensRevokePost)))
+	// Admin
+	mux.HandleFunc("GET /admin/users", securityHeaders(h.requireAdmin(h.handleAdminUsersGet)))
+	mux.HandleFunc("POST /admin/users", securityHeaders(h.requireAdmin(h.handleAdminUsersPost)))
+	mux.HandleFunc("POST /admin/users/action", securityHeaders(h.requireAdmin(h.handleAdminUsersActionPost)))
 	// Bookmark actions
 	mux.HandleFunc("GET /bookmarks/", securityHeaders(h.requireAuth(h.handleBookmarkGetSubpath)))
 	mux.HandleFunc("POST /bookmarks/", securityHeaders(h.requireAuth(h.handleBookmarkByIDPost)))

@@ -11,10 +11,14 @@
   <div class="container">
     <header class="topbar">
       <h1>Lynk</h1>
-      <form method="POST" action="/logout" class="inline">
-        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <button type="submit" class="linklike">Logout</button>
-      </form>
+      <nav>
+        <a href="/">Bookmarks</a> |
+        <a href="/settings/tokens">Tokens</a>{{if .IsAdmin}} | <a href="/admin/users">Admin</a>{{end}}
+        <form method="POST" action="/logout" class="inline">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button type="submit" class="linklike">Logout</button>
+        </form>
+      </nav>
     </header>
     {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
     {{if .Success}}<div class="success">{{.Success}}</div>{{end}}

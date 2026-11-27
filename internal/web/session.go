@@ -20,6 +20,7 @@ type Session struct {
 	UserID    int64
 	CSRFToken string
 	ExpiresAt time.Time
+	CreatedAt time.Time
 }
 
 // SessionStore is an in-memory process-scoped session store.
@@ -83,10 +84,12 @@ func (s *SessionStore) Create(userID int64) (string, string, error) {
 			delete(s.sessions, oldestKey)
 		}
 	}
+	nowt := s.now()
 	s.sessions[sid] = &Session{
 		UserID:    userID,
 		CSRFToken: csrf,
-		ExpiresAt: s.now().Add(s.ttl),
+		ExpiresAt: nowt.Add(s.ttl),
+		CreatedAt: nowt,
 	}
 	return sid, csrf, nil
 }

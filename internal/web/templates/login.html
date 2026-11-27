@@ -12,13 +12,20 @@
     <h1>Lynk</h1>
     <h2>Sign in</h2>
     {{if .Error}}<div class="error">Error: {{.Error}}</div>{{end}}
+    {{if .CanRegister}}<p><a href="/register">Create first admin account</a></p>{{end}}
     <form method="POST" action="/login">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password">
+      <hr>
+      <p class="hint">Or sign in with API token (legacy):</p>
       <label for="token">API Token</label>
-      <input type="text" id="token" name="token" autocomplete="off" required>
+      <input type="text" id="token" name="token" autocomplete="off">
       <button type="submit">Sign in</button>
     </form>
-    <p class="hint">Use the API token created with <code>lynk token create</code>.</p>
+    <p class="hint">Use your username/password, or an API token created with <code>lynk token create</code>.</p>
   </div>
 </body>
 </html>

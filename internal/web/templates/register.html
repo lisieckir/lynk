@@ -1,0 +1,27 @@
+{{define "register"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register - Lynk</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Lynk</h1>
+    <h2>Create admin account</h2>
+    {{if .Error}}<div class="error">Error: {{.Error}}</div>{{end}}
+    <form method="POST" action="/register">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" required minlength="3" maxlength="64">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8" maxlength="128">
+      <button type="submit">Create account</button>
+    </form>
+    <p class="hint">First account becomes admin. Registration closes after the first account is created.</p>
+  </div>
+</body>
+</html>
+{{end}}

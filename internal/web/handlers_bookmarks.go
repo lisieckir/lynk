@@ -40,6 +40,7 @@ func (h *Handler) handleBookmarksList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load bookmarks", http.StatusInternalServerError)
 		return
 	}
+	wu, _ := webUserFromContext(r.Context())
 	data := map[string]any{
 		"Bookmarks": page.Items,
 		"Count":     page.Count,
@@ -50,6 +51,7 @@ func (h *Handler) handleBookmarksList(w http.ResponseWriter, r *http.Request) {
 		"CSRFToken": sess.CSRFToken,
 		"Error":     r.URL.Query().Get("err"),
 		"Success":   r.URL.Query().Get("ok"),
+		"IsAdmin":   wu != nil && wu.Role == "admin",
 	}
 	_ = h.tmpl.ExecuteTemplate(w, "bookmarks", data)
 }
@@ -60,11 +62,13 @@ func (h *Handler) handleBookmarkNewGet(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
+	wu, _ := webUserFromContext(r.Context())
 	data := map[string]any{
 		"CSRFToken": sess.CSRFToken,
 		"Error":     r.URL.Query().Get("err"),
 		"Bookmark":  nil,
 		"IsEdit":    false,
+		"IsAdmin":   wu != nil && wu.Role == "admin",
 	}
 	_ = h.tmpl.ExecuteTemplate(w, "bookmark_form", data)
 }

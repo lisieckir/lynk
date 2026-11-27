@@ -1,0 +1,70 @@
+{{define "tokens"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API Tokens - Lynk</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <h1>Lynk - API Tokens</h1>
+      <nav>
+        <a href="/">Bookmarks</a> |
+        <a href="/settings/tokens">Tokens</a>
+        <form method="POST" action="/logout" class="inline">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button type="submit" class="linklike">Logout</button>
+        </form>
+      </nav>
+    </header>
+    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
+    {{if .NewToken}}
+    <div class="success">
+      <strong>New token created (shown only once):</strong>
+      <pre style="word-break:break-all;">{{.NewToken}}</pre>
+      <p>Copy this token now. It will not be shown again.</p>
+    </div>
+    {{end}}
+    <h2>Create token</h2>
+    <form method="POST" action="/settings/tokens">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <label for="name">Token name</label>
+      <input type="text" id="name" name="name" value="default">
+      <button type="submit">Create</button>
+    </form>
+    <h2>Your tokens</h2>
+    {{if .Tokens}}
+    <table class="bookmarks">
+      <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th>Revoked</th><th>Action</th></tr></thead>
+      <tbody>
+      {{range .Tokens}}
+        <tr>
+          <td>{{.Name}}</td>
+          <td>{{.Prefix}}...</td>
+          <td>{{.CreatedAt}}</td>
+          <td>{{if .LastUsedAt}}{{.LastUsedAt}}{{else}}-{{end}}</td>
+          <td>{{if .RevokedAt}}{{.RevokedAt}}{{else}}active{{end}}</td>
+          <td>
+            {{if not .RevokedAt}}
+            <form method="POST" action="/settings/tokens/revoke" class="inline">
+              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+              <input type="hidden" name="token_id" value="{{.ID}}">
+              <button type="submit">Revoke</button>
+            </form>
+            {{end}}
+          </td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p>No tokens yet.</p>
+    {{end}}
+    <p class="hint">This token works with the official Linkding browser extension (Authorization: Token &lt;token&gt;).</p>
+  </div>
+</body>
+</html>
+{{end}}

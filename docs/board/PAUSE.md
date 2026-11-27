@@ -38,12 +38,12 @@ security reviews i PO sign-off są zakończone.
 * **P2-011 — `DONE`**: benchmarki, profile, resource measurements,
   FTS optimization i Docker/release matrix zostały zaakceptowane po
   niezależnym release `APPROVE`.
-* **P2-012 — `BLOCKED`**: security review wykrył register CSRF, concurrent
-  first-admin i token URL leak HIGH oraz session/revoke/audit/test gaps;
-  poprawki są zlecone.
+* **P2-012 — `DONE`**: account signup, first-admin role, password login,
+  one-time API tokens, admin user/token management, session invalidation and
+  audit logging zostały zintegrowane po niezależnym `APPROVE`.
 
-P2-011 jest zamknięte. P2-012 rozszerza MVP o pełny account lifecycle i admin
-management; nie rozpoczynać kolejnego zależnego slice'a przed jego review.
+P2-012 jest zamknięte. Account lifecycle i admin management są gotowe;
+Docker flow potwierdził register → login → token → API → restart.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

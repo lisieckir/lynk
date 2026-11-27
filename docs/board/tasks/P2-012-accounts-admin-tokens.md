@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `BLOCKED` |
+| Status | `DONE` |
 | Priorytet | `P0` |
 | Owner | Iceman Free |
 | Faza | Phase 3/5 auth hardening |
@@ -40,16 +40,16 @@ pierwszego administratora.
 
 ## Kryteria akceptacji
 
-- [ ] Pusta baza pozwala utworzyć pierwsze konto i nadaje mu admin.
-- [ ] Kolejna publiczna rejestracja jest zamknięta; admin może utworzyć usera.
-- [ ] Login hasłem działa, hash nie ujawnia plaintextu, sesje mają CSRF.
-- [ ] Użytkownik tworzy token jednorazowo i może podpiąć nim wtyczkę.
-- [ ] API odrzuca tokeny użytkownika disabled/revoked.
-- [ ] Admin-only routes są odporne na IDOR i zwykły user dostaje 403.
-- [ ] Disable invaliduje sesje/tokeny bez kasowania bookmarków.
-- [ ] Migracja istniejącej bazy wybiera pierwszego usera jako admin.
-- [ ] `make check`, test/race, compat, integration, build i Docker PASS.
-- [ ] Niezależny security review `APPROVE` oraz PO_REVIEW.
+- [x] Pusta baza pozwala utworzyć pierwsze konto i nadaje mu admin.
+- [x] Kolejna publiczna rejestracja jest zamknięta; admin może utworzyć usera.
+- [x] Login hasłem działa, hash nie ujawnia plaintextu, sesje mają CSRF.
+- [x] Użytkownik tworzy token jednorazowo i może podpiąć nim wtyczkę.
+- [x] API odrzuca tokeny użytkownika disabled/revoked.
+- [x] Admin-only routes są odporne na IDOR i zwykły user dostaje 403.
+- [x] Disable invaliduje sesje/tokeny bez kasowania bookmarków.
+- [x] Migracja istniejącej bazy wybiera pierwszego usera jako admin.
+- [x] `make check`, test/race, compat, integration, build i Docker PASS.
+- [x] Niezależny security review `APPROVE` oraz PO_REVIEW.
 
 ## Postęp
 
@@ -62,8 +62,8 @@ pierwszego administratora.
 | 2026-11-27 | `BLOCKED` | PO | Second pass exists only uncommitted; critical regression tests and isolated Docker smoke remain outstanding |
 | 2026-11-27 | `BLOCKED` | PO | `8eb8abc`/`a4c2abf` committed UI/logging/docs and health smoke, but acceptance-critical account regression tests and full flow smoke remain |
 | 2026-11-27 | `REVIEW` | Hy4 Flash Free | `8c9f144` adds acceptance tests, migration tests and real Docker register/login/token/API/restart smoke; final security review pending |
+| 2026-11-27 | `DONE` | PO | Final security `APPROVE`, full matrix and Docker account flow PASS; PO_REVIEW PASS |
 
 ## Blockery
 
-Nie integrować `70c96fe` przed naprawą wszystkich HIGH/MEDIUM findings,
-pełnym test matrix i ponownym niezależnym security review.
+Brak blockerów. P2-012 jest zintegrowane po niezależnym security `APPROVE`.

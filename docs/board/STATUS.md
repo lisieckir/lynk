@@ -30,7 +30,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-009](tasks/P2-009-web-interface.md) | P0 | Web interface MVP | Iceman Free | `DONE` | P2-008 |
 | [P2-010](tasks/P2-010-netscape-import-export.md) | P0 | Netscape HTML import/export | Hy4 Flash Free | `DONE` | P2-009 |
 | [P2-011](tasks/P2-011-performance-release.md) | P0 | Performance, resource profile i final release gate | Big Pickle | `DONE` | P2-010 |
-| [P2-012](tasks/P2-012-accounts-admin-tokens.md) | P0 | Konta, role admina i tokeny API | Iceman Free | `BLOCKED` | P2-011 |
+| [P2-012](tasks/P2-012-accounts-admin-tokens.md) | P0 | Konta, role admina i tokeny API | Iceman Free | `DONE` | P2-011 |
 
 ## Rejestr blockerów i decyzji
 
@@ -85,6 +85,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-27 | P2-012 | Request changes | Second-pass UI/logging changes uncommitted; critical regressions and isolated Docker smoke still required | PO |
 | 2026-11-27 | P2-012 | Request changes | UI/logging committed and health smoke PASS; required account regression tests/full register-token-API flow still missing | PO |
 | 2026-11-27 | P2-012 | Review pending | `8c9f144` supplies 9 acceptance tests and Docker flow PASS; final security review in progress | PO |
+| 2026-11-27 | P2-012 | Akceptacja | Security `APPROVE`, full test/race/lint/compat/integration/build and Docker account flow PASS; PO_REVIEW PASS | PO |
 
 ## Historia zmian tablicy
 

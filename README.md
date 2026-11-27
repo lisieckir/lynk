@@ -34,9 +34,9 @@ policy.
 
 ## Accounts and tokens (web)
 
-* On a fresh database, open the web UI to register the first admin account (registration is then closed).
+* On a fresh database, open the web UI to register the first admin account (registration closes after the first account). Registration is rate-limited.
 * Users can sign in with username/password or a legacy API token; API tokens can be managed under **Tokens** and work with the official Linkding extension (`Authorization: Token <token>`).
-* Admins can manage users and tokens from the **Admin** panel.
+* Admins can manage users and tokens from the **Admin** panel. Admins cannot disable the last active admin (lockout protection). Password resets and user disable/enable invalidate existing web sessions (epoch-based).
 
 ## Documentation
 

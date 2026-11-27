@@ -1,0 +1,58 @@
+# P2-012 — Konta, role admina i tokeny API
+
+| Pole | Wartość |
+|---|---|
+| Status | `IN_PROGRESS` |
+| Priorytet | `P0` |
+| Owner | Iceman Free |
+| Faza | Phase 3/5 auth hardening |
+| Zależności | P2-011 |
+
+## Cel
+
+Umożliwić użytkownikowi założenie konta, zalogowanie się hasłem, utworzenie
+tokenu API do oficjalnej wtyczki oraz bezpieczne zarządzanie kontami przez
+pierwszego administratora.
+
+## Decyzje funkcjonalne
+
+* Pierwsza rejestracja w pustej bazie tworzy konto `admin`.
+* Po utworzeniu pierwszego konta publiczna rejestracja jest zamknięta;
+  administrator tworzy kolejne konta.
+* Hasła są przechowywane przez nowoczesny password hash, nigdy plaintext.
+* Token API jest pokazywany tylko raz po utworzeniu; baza przechowuje digest.
+* Istniejące tokenowe API i CLI pozostają kompatybilne.
+* Dezaktywacja użytkownika blokuje login, sesję i wszystkie jego tokeny, bez
+  kasowania jego bookmarków.
+
+## Zakres
+
+* migracja roli `admin/user` i aktywności użytkownika; pierwszy istniejący
+  użytkownik zostaje adminem;
+* `/register`, login username/password oraz bezpieczne session/CSRF flow;
+* `/settings/tokens`: create/list/revoke własnych tokenów, raw token only once;
+* `/admin/users`: list/create/disable/enable/reset password/revoke tokenów;
+* admin authorization na każdym endpointcie i owner scoping bookmarków;
+* bounded input, rate limiting rejestracji/loginu, security headers i audit-safe
+  logs bez haseł/tokenów;
+* testy migracji, hashowania, first-admin race, auth/session invalidation,
+  token lifecycle, IDOR/admin authorization i realnego plugin token flow.
+
+## Kryteria akceptacji
+
+- [ ] Pusta baza pozwala utworzyć pierwsze konto i nadaje mu admin.
+- [ ] Kolejna publiczna rejestracja jest zamknięta; admin może utworzyć usera.
+- [ ] Login hasłem działa, hash nie ujawnia plaintextu, sesje mają CSRF.
+- [ ] Użytkownik tworzy token jednorazowo i może podpiąć nim wtyczkę.
+- [ ] API odrzuca tokeny użytkownika disabled/revoked.
+- [ ] Admin-only routes są odporne na IDOR i zwykły user dostaje 403.
+- [ ] Disable invaliduje sesje/tokeny bez kasowania bookmarków.
+- [ ] Migracja istniejącej bazy wybiera pierwszego usera jako admin.
+- [ ] `make check`, test/race, compat, integration, build i Docker PASS.
+- [ ] Niezależny security review `APPROVE` oraz PO_REVIEW.
+
+## Postęp
+
+| Data | Status | Agent | Opis |
+|---|---|---|---|
+| 2026-11-27 | `IN_PROGRESS` | Iceman Free | Przydzielono account/admin/token lifecycle |

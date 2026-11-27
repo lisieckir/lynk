@@ -38,10 +38,11 @@ security reviews i PO sign-off są zakończone.
 * **P2-011 — `DONE`**: benchmarki, profile, resource measurements,
   FTS optimization i Docker/release matrix zostały zaakceptowane po
   niezależnym release `APPROVE`.
+* **P2-012 — `IN_PROGRESS`**: Iceman Free implementuje konta, role admina,
+  password login, token UI i admin account management.
 
-P2-011 jest zamknięte. MVP spełnia obecne Definition of Done; backup/restore
-jest dostępne przez SQLite-aware helper i Makefile. Pozostają nieblokujące
-operacyjne follow-upy: długi soak test i ewentualne formalne pprof automation.
+P2-011 jest zamknięte. P2-012 rozszerza MVP o pełny account lifecycle i admin
+management; nie rozpoczynać kolejnego zależnego slice'a przed jego review.
 
 Dowody i szczegóły: [P2-007](tasks/P2-007-release-e2e.md),
 [STATUS](STATUS.md), [api-compatibility.md](../api-compatibility.md) i

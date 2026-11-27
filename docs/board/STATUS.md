@@ -30,6 +30,7 @@ Właściciel tablicy: PO / koordynator projektu
 | [P2-009](tasks/P2-009-web-interface.md) | P0 | Web interface MVP | Iceman Free | `DONE` | P2-008 |
 | [P2-010](tasks/P2-010-netscape-import-export.md) | P0 | Netscape HTML import/export | Hy4 Flash Free | `DONE` | P2-009 |
 | [P2-011](tasks/P2-011-performance-release.md) | P0 | Performance, resource profile i final release gate | Big Pickle | `DONE` | P2-010 |
+| [P2-012](tasks/P2-012-accounts-admin-tokens.md) | P0 | Konta, role admina i tokeny API | Iceman Free | `IN_PROGRESS` | P2-011 |
 
 ## Rejestr blockerów i decyzji
 
@@ -77,6 +78,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-26 | P2-011 | Decyzja PO | Phase 8 performance/resource/release gate przed stable release | PO |
 | 2026-11-26 | P2-011 | Review pending | Benchmark, resource and Docker evidence PASS; independent release review w toku | PO |
 | 2026-11-26 | P2-011 | Akceptacja PO | Release review `APPROVE`, FTS differential PASS, full matrix/Docker/resource evidence PASS | PO |
+| 2026-11-27 | P2-012 | Decyzja PO | Account signup, first-admin role, admin user management and UI API-token creation required | PO |
 
 ## Historia zmian tablicy
 

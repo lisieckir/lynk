@@ -13,7 +13,7 @@ const (
 	MaxUsernameLen = 64
 	// MinPasswordLen and MaxPasswordLen bound accepted passwords.
 	MinPasswordLen = 8
-	MaxPasswordLen = 128
+	MaxPasswordLen = 72 // bcrypt limit is 72 bytes
 	// bcryptCost is the work factor for password hashing. 10 is a reasonable default.
 	bcryptCost = 10
 )
@@ -55,14 +55,15 @@ func ValidateUsername(username string) error {
 	return nil
 }
 
-// ValidatePassword checks password length bounds.
+// ValidatePassword checks password length bounds (by bytes for bcrypt compatibility).
 func ValidatePassword(password string) error {
-	n := utf8.RuneCountInString(password)
-	if n < MinPasswordLen {
+	bn := len(password)
+	if bn < MinPasswordLen {
 		return ErrPasswordTooShort
 	}
-	if n > MaxPasswordLen {
+	if bn > MaxPasswordLen {
 		return ErrPasswordTooLong
 	}
+	_ = utf8.RuneCountInString(password) // still valid utf8 is fine; bcrypt uses bytes
 	return nil
 }

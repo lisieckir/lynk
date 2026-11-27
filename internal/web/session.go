@@ -9,18 +9,21 @@ import (
 )
 
 const (
-	SessionCookieName   = "lynk_session"
-	LoginCSRFCookieName = "lynk_login_csrf"
-	sessionIDBytes      = 32
-	csrfTokenBytes      = 32
+	SessionCookieName      = "lynk_session"
+	LoginCSRFCookieName    = "lynk_login_csrf"
+	RegisterCSRFCookieName = "lynk_register_csrf"
+	sessionIDBytes         = 32
+	csrfTokenBytes         = 32
 )
 
 // Session holds server-side session data. Never store raw API token here.
 type Session struct {
-	UserID    int64
-	CSRFToken string
-	ExpiresAt time.Time
-	CreatedAt time.Time
+	UserID       int64
+	CSRFToken    string
+	ExpiresAt    time.Time
+	CreatedAt    time.Time
+	Epoch        int64
+	PendingToken string // one-time token to show after creation
 }
 
 // SessionStore is an in-memory process-scoped session store.
@@ -56,7 +59,7 @@ func (s *SessionStore) generateID(n int) (string, error) {
 }
 
 // Create creates a new session for userID, returns sessionID and CSRF token.
-func (s *SessionStore) Create(userID int64) (string, string, error) {
+func (s *SessionStore) Create(userID int64, epoch int64) (string, string, error) {
 	sid, err := s.generateID(sessionIDBytes)
 	if err != nil {
 		return "", "", err
@@ -90,6 +93,7 @@ func (s *SessionStore) Create(userID int64) (string, string, error) {
 		CSRFToken: csrf,
 		ExpiresAt: nowt.Add(s.ttl),
 		CreatedAt: nowt,
+		Epoch:     epoch,
 	}
 	return sid, csrf, nil
 }
@@ -133,6 +137,27 @@ func (s *SessionStore) RotateCSRF(sessionID string) (string, bool) {
 	}
 	sess.CSRFToken = csrf
 	return csrf, true
+}
+
+// SetPendingToken sets a one-time token to be shown to the user.
+func (s *SessionStore) SetPendingToken(sessionID, token string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if sess, ok := s.sessions[sessionID]; ok {
+		sess.PendingToken = token
+	}
+}
+
+// ConsumePendingToken returns and clears the pending token if present.
+func (s *SessionStore) ConsumePendingToken(sessionID string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if sess, ok := s.sessions[sessionID]; ok {
+		t := sess.PendingToken
+		sess.PendingToken = ""
+		return t
+	}
+	return ""
 }
 
 func (s *SessionStore) cleanupLocked() {

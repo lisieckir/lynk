@@ -19,10 +19,11 @@ var (
 
 // User represents an authenticated user record.
 type User struct {
-	ID       int64
-	Username string
-	Role     string
-	Disabled bool
+	ID           int64
+	Username     string
+	Role         string
+	Disabled     bool
+	SessionEpoch int64
 }
 
 // UserSummary is user info without sensitive fields.
@@ -64,14 +65,18 @@ func CreateToken(ctx context.Context, db *sql.DB, username, tokenName string) (*
 		tokenName = "default"
 	}
 	var userID int64
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
 	var count int
-	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&count); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&count); err != nil {
 		return nil, fmt.Errorf("count users: %w", err)
 	}
 	if count == 0 {
-		// Create first user (bootstrap) — admin, with unusable password hash
 		now := time.Now().UTC().Format(time.RFC3339)
-		res, err := db.ExecContext(ctx,
+		res, err := tx.ExecContext(ctx,
 			"INSERT INTO users (username, password_hash, role, disabled, created_at, updated_at) VALUES (?, ?, 'admin', 0, ?, ?)",
 			username, "!", now, now,
 		)
@@ -82,7 +87,7 @@ func CreateToken(ctx context.Context, db *sql.DB, username, tokenName string) (*
 		if err != nil {
 			return nil, fmt.Errorf("user id: %w", err)
 		}
-		_, err = db.ExecContext(ctx,
+		_, err = tx.ExecContext(ctx,
 			`INSERT INTO user_profiles (user_id, theme, bookmark_date_display, bookmark_link_target, web_archive_integration,
 				tag_search, enable_sharing, enable_public_sharing, enable_favicons, display_url, permanent_notes, search_preferences)
 			 VALUES (?, '', '', '', '', 0, 0, 0, 1, 0, '', '{}')`,
@@ -92,13 +97,16 @@ func CreateToken(ctx context.Context, db *sql.DB, username, tokenName string) (*
 			return nil, fmt.Errorf("create user profile: %w", err)
 		}
 	} else {
-		err := db.QueryRowContext(ctx, "SELECT id FROM users WHERE username = ?", username).Scan(&userID)
+		err := tx.QueryRowContext(ctx, "SELECT id FROM users WHERE username = ?", username).Scan(&userID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, fmt.Errorf("user %q not found", username)
 			}
 			return nil, fmt.Errorf("lookup user: %w", err)
 		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit: %w", err)
 	}
 	return CreateTokenForUser(ctx, db, userID, tokenName)
 }
@@ -159,14 +167,15 @@ func LookupByToken(ctx context.Context, db *sql.DB, rawToken string) (*User, err
 	var userID int64
 	var username, role string
 	var disabled int
+	var epoch int64
 	err := db.QueryRowContext(ctx,
-		`SELECT t.user_id, u.username, u.role, u.disabled
+		`SELECT t.user_id, u.username, u.role, u.disabled, u.session_epoch
 		 FROM api_tokens t
 		 JOIN users u ON u.id = t.user_id
 		 WHERE t.token_digest = ? AND t.revoked_at IS NULL
 		 LIMIT 1`,
 		digest,
-	).Scan(&userID, &username, &role, &disabled)
+	).Scan(&userID, &username, &role, &disabled, &epoch)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w: token not found or revoked", ErrUnauthorized)
@@ -179,7 +188,7 @@ func LookupByToken(ctx context.Context, db *sql.DB, rawToken string) (*User, err
 	// Update last_used_at (best effort, don't fail the lookup)
 	_, _ = db.ExecContext(ctx, "UPDATE api_tokens SET last_used_at = ? WHERE user_id = ? AND token_digest = ?", time.Now().UTC().Format(time.RFC3339), userID, digest)
 
-	return &User{ID: userID, Username: username, Role: role, Disabled: false}, nil
+	return &User{ID: userID, Username: username, Role: role, Disabled: false, SessionEpoch: epoch}, nil
 }
 
 // AuthenticatePassword authenticates a user by username and password.
@@ -194,7 +203,8 @@ func AuthenticatePassword(ctx context.Context, db *sql.DB, username, password st
 	var uid int64
 	var pwHash, role string
 	var disabled int
-	err := db.QueryRowContext(ctx, "SELECT id, password_hash, role, disabled FROM users WHERE username = ?", username).Scan(&uid, &pwHash, &role, &disabled)
+	var epoch int64
+	err := db.QueryRowContext(ctx, "SELECT id, password_hash, role, disabled, session_epoch FROM users WHERE username = ?", username).Scan(&uid, &pwHash, &role, &disabled, &epoch)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrInvalidCredentials
@@ -210,7 +220,7 @@ func AuthenticatePassword(ctx context.Context, db *sql.DB, username, password st
 	if err := CheckPassword(pwHash, password); err != nil {
 		return nil, ErrInvalidCredentials
 	}
-	return &User{ID: uid, Username: username, Role: role, Disabled: false}, nil
+	return &User{ID: uid, Username: username, Role: role, Disabled: false, SessionEpoch: epoch}, nil
 }
 
 // CreateUser creates a new user with password (admin action). Role is always 'user' unless specified otherwise by caller logic; but requirement says "create users" in admin panel — typically creates regular users. Let us set role='user'.
@@ -290,12 +300,26 @@ func GetUserByID(ctx context.Context, db *sql.DB, id int64) (*UserSummary, error
 	return &u, nil
 }
 
-// SetUserDisabled sets disabled state. When disabling, revokes all active tokens and sets session_valid_after.
+// SetUserDisabled sets disabled state. When disabling, revokes all active tokens and bumps session epoch.
 func SetUserDisabled(ctx context.Context, db *sql.DB, userID int64, disabled bool) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	if disabled {
-		// Disable: set disabled, disabled_at, session_valid_after; revoke all tokens
-		_, err := db.ExecContext(ctx, "UPDATE users SET disabled = 1, disabled_at = ?, session_valid_after = ?, updated_at = ? WHERE id = ?", now, now, now, userID)
+		// Prevent disabling last active admin
+		var role string
+		err := db.QueryRowContext(ctx, "SELECT role FROM users WHERE id = ?", userID).Scan(&role)
+		if err != nil {
+			return fmt.Errorf("lookup user: %w", err)
+		}
+		if role == "admin" {
+			var adminCount int
+			if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE role = 'admin' AND disabled = 0").Scan(&adminCount); err != nil {
+				return fmt.Errorf("count admins: %w", err)
+			}
+			if adminCount <= 1 {
+				return errors.New("cannot disable the last active admin")
+			}
+		}
+		_, err = db.ExecContext(ctx, "UPDATE users SET disabled = 1, disabled_at = ?, session_valid_after = ?, updated_at = ?, session_epoch = session_epoch + 1 WHERE id = ?", now, now, now, userID)
 		if err != nil {
 			return fmt.Errorf("disable user: %w", err)
 		}
@@ -305,8 +329,8 @@ func SetUserDisabled(ctx context.Context, db *sql.DB, userID int64, disabled boo
 		}
 		return nil
 	}
-	// Enable: clear disabled
-	_, err := db.ExecContext(ctx, "UPDATE users SET disabled = 0, disabled_at = NULL, updated_at = ? WHERE id = ?", now, userID)
+	// Enable: clear disabled and bump epoch to invalidate old sessions
+	_, err := db.ExecContext(ctx, "UPDATE users SET disabled = 0, disabled_at = NULL, updated_at = ?, session_epoch = session_epoch + 1 WHERE id = ?", now, userID)
 	if err != nil {
 		return fmt.Errorf("enable user: %w", err)
 	}
@@ -323,7 +347,7 @@ func ResetPassword(ctx context.Context, db *sql.DB, userID int64, newPassword st
 		return err
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
-	res, err := db.ExecContext(ctx, "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", hash, now, userID)
+	res, err := db.ExecContext(ctx, "UPDATE users SET password_hash = ?, updated_at = ?, session_epoch = session_epoch + 1 WHERE id = ?", hash, now, userID)
 	if err != nil {
 		return fmt.Errorf("reset password: %w", err)
 	}

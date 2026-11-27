@@ -10,6 +10,11 @@ import (
 func (h *Handler) handleTokensGet(w http.ResponseWriter, r *http.Request) {
 	wu, _ := webUserFromContext(r.Context())
 	sess, _ := sessionFromContext(r.Context())
+	// Consume one-time pending token from session store if present
+	var newToken string
+	if c, err := r.Cookie(SessionCookieName); err == nil && c.Value != "" {
+		newToken = h.sessions.ConsumePendingToken(c.Value)
+	}
 	tokens, err := auth.ListTokensForUser(r.Context(), h.db, wu.ID)
 	if err != nil {
 		h.logger.Error("list tokens", "error", err)
@@ -19,7 +24,7 @@ func (h *Handler) handleTokensGet(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"CSRFToken": sess.CSRFToken,
 		"Tokens":    tokens,
-		"NewToken":  r.URL.Query().Get("newtoken"),
+		"NewToken":  newToken,
 		"Error":     r.URL.Query().Get("err"),
 	}
 	_ = h.tmpl.ExecuteTemplate(w, "tokens", data)
@@ -46,8 +51,10 @@ func (h *Handler) handleTokensCreatePost(w http.ResponseWriter, r *http.Request)
 		http.Redirect(w, r, "/settings/tokens?err=create+failed", http.StatusSeeOther)
 		return
 	}
-	// Show token once via query param (simple approach; could be improved with flash)
-	http.Redirect(w, r, "/settings/tokens?newtoken="+info.Token, http.StatusSeeOther)
+	if c, err := r.Cookie(SessionCookieName); err == nil && c.Value != "" {
+		h.sessions.SetPendingToken(c.Value, info.Token)
+	}
+	http.Redirect(w, r, "/settings/tokens", http.StatusSeeOther)
 }
 
 func (h *Handler) handleTokensRevokePost(w http.ResponseWriter, r *http.Request) {

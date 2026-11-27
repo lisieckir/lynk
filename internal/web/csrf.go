@@ -41,9 +41,47 @@ func ClearLoginCSRFCookie(w http.ResponseWriter, secure bool) {
 	})
 }
 
+// SetRegisterCSRFCookie sets a short-lived CSRF cookie for the register form.
+func SetRegisterCSRFCookie(w http.ResponseWriter, token string, secure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     RegisterCSRFCookieName,
+		Value:    token,
+		Path:     "/register",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   secure,
+		MaxAge:   600,
+	})
+}
+
+// ClearRegisterCSRFCookie clears the register CSRF cookie.
+func ClearRegisterCSRFCookie(w http.ResponseWriter, secure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     RegisterCSRFCookieName,
+		Value:    "",
+		Path:     "/register",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   secure,
+		MaxAge:   -1,
+	})
+}
+
 // ValidateLoginCSRF validates the double-submit CSRF for login: form token must equal cookie token.
 func ValidateLoginCSRF(r *http.Request, formToken string) bool {
 	c, err := r.Cookie(LoginCSRFCookieName)
+	if err != nil || c.Value == "" || formToken == "" {
+		return false
+	}
+	if len(c.Value) != len(formToken) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(c.Value), []byte(formToken)) == 1
+}
+
+// ValidateRegisterCSRF validates the double-submit CSRF for register.
+func ValidateRegisterCSRF(r *http.Request, formToken string) bool {
+	c, err := r.Cookie(RegisterCSRFCookieName)
 	if err != nil || c.Value == "" || formToken == "" {
 		return false
 	}

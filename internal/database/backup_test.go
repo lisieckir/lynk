@@ -53,8 +53,8 @@ func TestBackupIsConsistentWithUncheckpointedWAL(t *testing.T) {
 	if got := countRows(t, backup, `SELECT count(*) FROM bookmark_search WHERE bookmark_search MATCH 'alpha'`); got != 1 {
 		t.Errorf("FTS rows in backup = %d, want 1", got)
 	}
-	if got := countRows(t, backup, `SELECT count(*) FROM schema_migrations`); got != 3 {
-		t.Errorf("migration rows in backup = %d, want 3", got)
+	if got := countRows(t, backup, `SELECT count(*) FROM schema_migrations`); got != 4 {
+		t.Errorf("migration rows in backup = %d, want 4", got)
 	}
 	var title string
 	if err := backup.QueryRowContext(ctx, `SELECT title FROM bookmarks WHERE id = 1`).Scan(&title); err != nil {

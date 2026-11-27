@@ -111,8 +111,8 @@ func TestOpenFreshAndReopenPreservesData(t *testing.T) {
 	if title != "Alpha Title" {
 		t.Errorf("title after reopen = %q, want %q", title, "Alpha Title")
 	}
-	if got := countRows(t, reopened, `SELECT count(*) FROM schema_migrations`); got != 3 {
-		t.Errorf("migration rows after reopen = %d, want 3", got)
+	if got := countRows(t, reopened, `SELECT count(*) FROM schema_migrations`); got != 4 {
+		t.Errorf("migration rows after reopen = %d, want 4", got)
 	}
 }
 
@@ -141,8 +141,8 @@ func TestOpenPreservesExistingDatabasePermissions(t *testing.T) {
 	if err := verifyPragmas(context.Background(), db, defaultBusyTimeout); err != nil {
 		t.Fatal(err)
 	}
-	if got := countRows(t, db, `SELECT count(*) FROM schema_migrations`); got != 3 {
-		t.Errorf("migration rows on existing database = %d, want 3", got)
+	if got := countRows(t, db, `SELECT count(*) FROM schema_migrations`); got != 4 {
+		t.Errorf("migration rows on existing database = %d, want 4", got)
 	}
 	info, err := os.Stat(path)
 	if err != nil {
@@ -393,8 +393,8 @@ func TestMigrationIdempotence(t *testing.T) {
 			t.Fatalf("Migrate run %d: %v", i+1, err)
 		}
 	}
-	if got := countRows(t, db, `SELECT count(*) FROM schema_migrations`); got != 3 {
-		t.Fatalf("migration rows = %d, want 3", got)
+	if got := countRows(t, db, `SELECT count(*) FROM schema_migrations`); got != 4 {
+		t.Fatalf("migration rows = %d, want 4", got)
 	}
 	rows, err := db.QueryContext(ctx,
 		`SELECT version, name, checksum FROM schema_migrations ORDER BY version`,
@@ -402,7 +402,7 @@ func TestMigrationIdempotence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantNames := map[int]string{1: "initial", 2: "bookmark_tag_fts_triggers", 3: "users_roles_disabled"}
+	wantNames := map[int]string{1: "initial", 2: "bookmark_tag_fts_triggers", 3: "users_roles_disabled", 4: "user_session_epoch"}
 	for rows.Next() {
 		var version int
 		var name, checksum string
@@ -428,8 +428,8 @@ func TestMigrationIdempotence(t *testing.T) {
 		t.Fatal(err)
 	}
 	reopened := openTestDB(t, cfg)
-	if got := countRows(t, reopened, `SELECT count(*) FROM schema_migrations`); got != 3 {
-		t.Fatalf("migration rows after restart = %d, want 3", got)
+	if got := countRows(t, reopened, `SELECT count(*) FROM schema_migrations`); got != 4 {
+		t.Fatalf("migration rows after restart = %d, want 4", got)
 	}
 
 	if _, err := reopened.ExecContext(ctx, `UPDATE schema_migrations SET checksum = 'changed' WHERE version = 1`); err != nil {

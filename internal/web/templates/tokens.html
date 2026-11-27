@@ -4,66 +4,92 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>API Tokens - Lynk</title>
+  <title>API tokens - Lynk</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-  <div class="container">
-    <header class="topbar">
-      <h1>Lynk - API Tokens</h1>
-      <nav>
-        <a href="/">Bookmarks</a> |
-        <a href="/settings/tokens">Tokens</a>
-        <form method="POST" action="/logout" class="inline">
-          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-          <button type="submit" class="linklike">Logout</button>
-        </form>
+<body class="app-body">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="/" aria-label="Lynk home"><span class="brand-mark" aria-hidden="true">↗</span><span>lynk</span></a>
+      <div class="sidebar-label">Workspace</div>
+      <nav class="side-nav">
+        <a href="/"><span class="nav-icon" aria-hidden="true">⌂</span>Bookmarks</a>
+        <a href="/settings/tokens" aria-current="page"><span class="nav-icon" aria-hidden="true">◇</span>API tokens</a>
       </nav>
-    </header>
-    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
-    {{if .NewToken}}
-    <div class="success">
-      <strong>New token created (shown only once):</strong>
-      <pre style="word-break:break-all;">{{.NewToken}}</pre>
-      <p>Copy this token now. It will not be shown again.</p>
-    </div>
-    {{end}}
-    <h2>Create token</h2>
-    <form method="POST" action="/settings/tokens">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <label for="name">Token name</label>
-      <input type="text" id="name" name="name" value="default">
-      <button type="submit">Create</button>
-    </form>
-    <h2>Your tokens</h2>
-    {{if .Tokens}}
-    <table class="bookmarks">
-      <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th>Revoked</th><th>Action</th></tr></thead>
-      <tbody>
-      {{range .Tokens}}
-        <tr>
-          <td>{{.Name}}</td>
-          <td>{{.Prefix}}...</td>
-          <td>{{.CreatedAt}}</td>
-          <td>{{if .LastUsedAt}}{{.LastUsedAt}}{{else}}-{{end}}</td>
-          <td>{{if .RevokedAt}}{{.RevokedAt}}{{else}}active{{end}}</td>
-          <td>
-            {{if not .RevokedAt}}
-            <form method="POST" action="/settings/tokens/revoke" class="inline">
-              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-              <input type="hidden" name="token_id" value="{{.ID}}">
-              <button type="submit">Revoke</button>
+      <div class="sidebar-spacer"></div>
+      <div class="user-card"><span class="user-avatar" aria-hidden="true">L</span><span><strong>Personal space</strong><small>Private workspace</small></span></div>
+      <form method="POST" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button type="submit" class="linklike logout"><span class="nav-icon" aria-hidden="true">↪</span>Sign out</button>
+      </form>
+    </aside>
+    <main class="main-content">
+      <div class="content-width">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Settings</p>
+            <h1>API tokens</h1>
+            <p class="lede">Connect Lynk to browser extensions and trusted tools without sharing your password.</p>
+          </div>
+        </header>
+        {{if .Error}}<div class="alert error" role="alert"><span class="alert-icon" aria-hidden="true">!</span><div>{{.Error}}</div></div>{{end}}
+        {{if .NewToken}}
+        <div class="alert success" role="status">
+          <span class="alert-icon" aria-hidden="true">✓</span>
+          <div>
+            <strong>Token created — copy it now</strong>
+            <p>This secret is shown only once and cannot be recovered later.</p>
+            <div class="token-reveal"><pre>{{.NewToken}}</pre></div>
+          </div>
+        </div>
+        {{end}}
+        <div class="split-grid">
+          <section class="panel-card" aria-labelledby="create-token-heading">
+            <h2 id="create-token-heading">Create a token</h2>
+            <p class="hint">Give each integration its own name so you can revoke access cleanly.</p>
+            <form method="POST" action="/settings/tokens">
+              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+              <div class="field">
+                <label for="name">Token name</label>
+                <input type="text" id="name" name="name" value="default" maxlength="100">
+              </div>
+              <button class="primary" type="submit">Create token</button>
             </form>
-            {{end}}
-          </td>
-        </tr>
-      {{end}}
-      </tbody>
-    </table>
-    {{else}}
-    <p>No tokens yet.</p>
-    {{end}}
-    <p class="hint">This token works with the official Linkding browser extension (Authorization: Token &lt;token&gt;).</p>
+          </section>
+          <section class="panel-card" aria-labelledby="token-list-heading">
+            <div class="section-heading"><h2 id="token-list-heading">Your tokens</h2><span class="meta">{{len .Tokens}} total</span></div>
+            {{if .Tokens}}
+            <div class="table-card token-table">
+              <table class="bookmarks">
+                <thead><tr><th scope="col">Name</th><th scope="col">Prefix</th><th scope="col">Created</th><th scope="col">Last used</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Action</span></th></tr></thead>
+                <tbody>
+                {{range .Tokens}}
+                  <tr>
+                    <td data-label="Name">{{.Name}}</td>
+                    <td data-label="Prefix"><code>{{.Prefix}}...</code></td>
+                    <td data-label="Created">{{.CreatedAt}}</td>
+                    <td data-label="Last used">{{if .LastUsedAt}}{{.LastUsedAt}}{{else}}<span class="meta">Never</span>{{end}}</td>
+                    <td data-label="Status">{{if .RevokedAt}}<span class="badge revoked">Revoked</span>{{else}}<span class="badge active">Active</span>{{end}}</td>
+                    <td class="actions" data-label="Action">
+                      {{if not .RevokedAt}}
+                      <form method="POST" action="/settings/tokens/revoke" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                        <input type="hidden" name="token_id" value="{{.ID}}">
+                        <button type="submit" class="danger">Revoke</button>
+                      </form>
+                      {{end}}
+                    </td>
+                  </tr>
+                {{end}}
+                </tbody>
+              </table>
+            </div>
+            {{else}}<div class="empty-state"><strong>No tokens yet</strong><span>Create one to connect an integration.</span></div>{{end}}
+          </section>
+        </div>
+        <p class="hint">Tokens work with the official Linkding browser extension using <code>Authorization: Token &lt;token&gt;</code>.</p>
+      </div>
+    </main>
   </div>
 </body>
 </html>

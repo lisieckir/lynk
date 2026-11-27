@@ -4,28 +4,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login - Lynk</title>
+  <title>Sign in - Lynk</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-  <div class="container">
-    <h1>Lynk</h1>
-    <h2>Sign in</h2>
-    {{if .Error}}<div class="error">Error: {{.Error}}</div>{{end}}
-    {{if .CanRegister}}<p><a href="/register">Create first admin account</a></p>{{end}}
-    <form method="POST" action="/login">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <label for="username">Username</label>
-      <input type="text" id="username" name="username" autocomplete="username">
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" autocomplete="current-password">
-      <hr>
-      <p class="hint">Or sign in with API token (legacy):</p>
-      <label for="token">API Token</label>
-      <input type="text" id="token" name="token" autocomplete="off">
-      <button type="submit">Sign in</button>
-    </form>
-    <p class="hint">Use your username/password, or an API token created with <code>lynk token create</code>.</p>
+<body class="auth-body">
+  <div class="auth-layout">
+    <aside class="auth-aside">
+      <a class="brand" href="/login" aria-label="Lynk sign in"><span class="brand-mark" aria-hidden="true">↗</span><span>lynk</span></a>
+      <h1>Your links, thoughtfully kept.</h1>
+      <p>A quiet, self-hosted home for the things you discover and want to remember.</p>
+      <ul class="auth-points">
+        <li>Search your library in a moment</li>
+        <li>Own your data and your workflow</li>
+        <li>Connect your favourite tools with tokens</li>
+      </ul>
+    </aside>
+    <main class="auth-panel">
+      <p class="eyebrow">Welcome back</p>
+      <h2>Sign in to Lynk</h2>
+      <p class="subheading">Pick up where you left off.</p>
+      {{if .Error}}<div class="alert error" role="alert"><span class="alert-icon" aria-hidden="true">!</span><div>{{.Error}}</div></div>{{end}}
+      {{if .CanRegister}}<p class="hint">This is a new Lynk instance. <a href="/register">Create the first admin account</a>.</p>{{end}}
+      <form method="POST" action="/login">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username" autofocus>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password">
+        </div>
+        <hr>
+        <p class="hint">Or use an API Token (legacy login).</p>
+        <div class="field">
+          <label for="token">API token</label>
+          <input type="text" id="token" name="token" autocomplete="off">
+        </div>
+        <div class="button-row"><button class="primary" type="submit">Sign in</button></div>
+      </form>
+      <p class="hint">API tokens can be created from <code>lynk token create</code> or your account settings.</p>
+    </main>
   </div>
 </body>
 </html>

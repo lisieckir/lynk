@@ -7,87 +7,109 @@
   <title>Bookmarks - Lynk</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-  <div class="container">
-    <header class="topbar">
-      <h1>Lynk</h1>
-      <nav>
-        <a href="/">Bookmarks</a> |
-        <a href="/settings/tokens">Tokens</a>{{if .IsAdmin}} | <a href="/admin/users">Admin</a>{{end}}
-        <form method="POST" action="/logout" class="inline">
-          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-          <button type="submit" class="linklike">Logout</button>
-        </form>
+<body class="app-body">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="/" aria-label="Lynk home"><span class="brand-mark" aria-hidden="true">↗</span><span>lynk</span></a>
+      <div class="sidebar-label">Workspace</div>
+      <nav class="side-nav">
+        <a href="/" aria-current="page"><span class="nav-icon" aria-hidden="true">⌂</span>Bookmarks</a>
+        <a href="/settings/tokens"><span class="nav-icon" aria-hidden="true">◇</span>API tokens</a>
+        {{if .IsAdmin}}<a href="/admin/users"><span class="nav-icon" aria-hidden="true">♙</span>Admin</a>{{end}}
       </nav>
-    </header>
-    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
-    {{if .Success}}<div class="success">{{.Success}}</div>{{end}}
-
-    <section class="toolbar">
-      <form method="GET" action="/bookmarks" class="search-form">
-        <input type="text" name="q" value="{{.Query}}" placeholder="Search...">
-        <label><input type="checkbox" name="archived" value="1" {{if .Archived}}checked{{end}}> Archived</label>
-        <button type="submit">Filter</button>
+      <div class="sidebar-spacer"></div>
+      <div class="user-card"><span class="user-avatar" aria-hidden="true">L</span><span><strong>Personal space</strong><small>Private workspace</small></span></div>
+      <form method="POST" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button type="submit" class="linklike logout"><span class="nav-icon" aria-hidden="true">↪</span>Sign out</button>
       </form>
-      <a class="btn" href="/bookmarks/new">+ New bookmark</a>
-    </section>
+    </aside>
+    <main class="main-content">
+      <div class="content-width">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Library</p>
+            <h1>Your bookmarks</h1>
+            <p class="lede">A calm place for the links you want to keep close.</p>
+          </div>
+          <a class="btn primary" href="/bookmarks/new"><span aria-hidden="true">＋</span> New bookmark</a>
+        </header>
 
-    <p class="meta">{{.Count}} result(s)</p>
+        {{if .Error}}<div class="alert error" role="alert"><span class="alert-icon" aria-hidden="true">!</span><div>{{.Error}}</div></div>{{end}}
+        {{if .Success}}<div class="alert success" role="status"><span class="alert-icon" aria-hidden="true">✓</span><div>{{.Success}}</div></div>{{end}}
 
-    {{if .Bookmarks}}
-    <table class="bookmarks">
-      <thead>
-        <tr><th>Title / URL</th><th>Tags</th><th>Status</th><th>Actions</th></tr>
-      </thead>
-      <tbody>
-      {{range .Bookmarks}}
-        <tr>
-          <td>
-            <div class="title">{{if .Title}}{{.Title}}{{else}}(no title){{end}}</div>
-            <div class="url"><a href="{{.URL}}" rel="noopener noreferrer" target="_blank">{{.URL}}</a></div>
-            {{if .Description}}<div class="desc">{{.Description}}</div>{{end}}
-          </td>
-          <td>
-            {{if .Tags}}{{range .Tags}}<span class="tag">{{.}}</span> {{end}}{{else}}-{{end}}
-          </td>
-          <td>
-            {{if .IsArchived}}<span class="badge">archived</span>{{end}}
-            {{if .Unread}}<span class="badge">unread</span>{{end}}
-          </td>
-          <td class="actions">
-            <a href="/bookmarks/{{.ID}}/edit">Edit</a>
-            {{if .IsArchived}}
-            <form method="POST" action="/bookmarks/{{.ID}}/unarchive" class="inline">
-              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-              <button type="submit">Unarchive</button>
-            </form>
-            {{else}}
-            <form method="POST" action="/bookmarks/{{.ID}}/archive" class="inline">
-              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-              <button type="submit">Archive</button>
-            </form>
+        <section class="toolbar" aria-label="Bookmark filters">
+          <form method="GET" action="/bookmarks" class="search-form">
+            <div class="search-wrap">
+              <span class="search-icon" aria-hidden="true">⌕</span>
+              <label for="bookmark-search" class="visually-hidden">Search bookmarks</label>
+              <input type="text" id="bookmark-search" name="q" value="{{.Query}}" placeholder="Search title, URL, description...">
+            </div>
+            <label class="check-label"><input type="checkbox" name="archived" value="1" {{if .Archived}}checked{{end}}> Include archived</label>
+            <button type="submit">Filter</button>
+          </form>
+        </section>
+
+        <p class="meta results-line"><strong>{{.Count}}</strong> bookmark{{if ne .Count 1}}s{{end}}{{if .Query}} matching “{{.Query}}”{{end}}</p>
+
+        {{if .Bookmarks}}
+        <div class="table-card">
+          <table class="bookmarks">
+            <thead>
+              <tr><th scope="col">Bookmark</th><th scope="col">Tags</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+            </thead>
+            <tbody>
+            {{range .Bookmarks}}
+              <tr>
+                <td data-label="Bookmark">
+                  <div class="title">{{if .Title}}{{.Title}}{{else}}(no title){{end}}</div>
+                  <div class="url"><a href="{{.URL}}" rel="noopener noreferrer" target="_blank">{{.URL}}</a></div>
+                  {{if .Description}}<div class="desc">{{.Description}}</div>{{end}}
+                </td>
+                <td data-label="Tags">
+                  {{if .Tags}}{{range .Tags}}<span class="tag">{{.}}</span>{{end}}{{else}}<span class="meta">No tags</span>{{end}}
+                </td>
+                <td data-label="Status">
+                  {{if .IsArchived}}<span class="badge archived">Archived</span>{{end}}
+                  {{if .Unread}}<span class="badge unread">Unread</span>{{end}}
+                  {{if and (not .IsArchived) (not .Unread)}}<span class="meta">—</span>{{end}}
+                </td>
+                <td class="actions" data-label="Actions">
+                  <a href="/bookmarks/{{.ID}}/edit">Edit</a>
+                  {{if .IsArchived}}
+                  <form method="POST" action="/bookmarks/{{.ID}}/unarchive" class="inline">
+                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                    <button type="submit">Unarchive</button>
+                  </form>
+                  {{else}}
+                  <form method="POST" action="/bookmarks/{{.ID}}/archive" class="inline">
+                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                    <button type="submit">Archive</button>
+                  </form>
+                  {{end}}
+                  <form method="POST" action="/bookmarks/{{.ID}}/delete" class="inline">
+                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                    <button type="submit" class="danger">Delete</button>
+                  </form>
+                </td>
+              </tr>
             {{end}}
-            <form method="POST" action="/bookmarks/{{.ID}}/delete" class="inline">
-              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-              <button type="submit" class="danger">Delete</button>
-            </form>
-          </td>
-        </tr>
-      {{end}}
-      </tbody>
-    </table>
-    {{else}}
-      <p>No bookmarks found.</p>
-    {{end}}
+            </tbody>
+          </table>
+        </div>
+        {{else}}
+        <div class="panel-card empty-state">
+          <strong>{{if .Query}}No bookmarks match your search{{else}}Your library is empty{{end}}</strong>
+          <span>{{if .Query}}Try a different search or clear the filters.{{else}}Save your first link and start building your personal library.{{end}}</span>
+        </div>
+        {{end}}
 
-    <div class="pagination">
-      {{if gt .Offset 0}}
-        <a href="/bookmarks?q={{.Query}}&archived={{if .Archived}}1{{else}}0{{end}}&offset={{sub .Offset .Limit}}">Previous</a>
-      {{end}}
-      {{if lt (add .Offset .Limit) .Count}}
-        <a href="/bookmarks?q={{.Query}}&archived={{if .Archived}}1{{else}}0{{end}}&offset={{add .Offset .Limit}}">Next</a>
-      {{end}}
-    </div>
+        <nav class="pagination" aria-label="Bookmark pages">
+          {{if gt .Offset 0}}<a href="/bookmarks?q={{.Query}}&archived={{if .Archived}}1{{else}}0{{end}}&offset={{sub .Offset .Limit}}">← Previous</a>{{end}}
+          {{if lt (add .Offset .Limit) .Count}}<a href="/bookmarks?q={{.Query}}&archived={{if .Archived}}1{{else}}0{{end}}&offset={{add .Offset .Limit}}">Next →</a>{{end}}
+        </nav>
+      </div>
+    </main>
   </div>
 </body>
 </html>

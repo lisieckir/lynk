@@ -7,35 +7,69 @@
   <title>{{if .IsEdit}}Edit{{else}}New{{end}} Bookmark - Lynk</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-  <div class="container">
-    <h1>{{if .IsEdit}}Edit Bookmark{{else}}New Bookmark{{end}}</h1>
-    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
-    <form method="POST" action="{{if .IsEdit}}/bookmarks/{{.Bookmark.ID}}/edit{{else}}/bookmarks{{end}}">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <label for="url">URL *</label>
-      <input type="url" id="url" name="url" value="{{if .Bookmark}}{{.Bookmark.URL}}{{end}}" required>
-
-      <label for="title">Title</label>
-      <input type="text" id="title" name="title" value="{{if .Bookmark}}{{.Bookmark.Title}}{{end}}">
-
-      <label for="description">Description</label>
-      <textarea id="description" name="description">{{if .Bookmark}}{{.Bookmark.Description}}{{end}}</textarea>
-
-      <label for="notes">Notes</label>
-      <textarea id="notes" name="notes">{{if .Bookmark}}{{.Bookmark.Notes}}{{end}}</textarea>
-
-      <label for="tags">Tags (comma-separated)</label>
-      <input type="text" id="tags" name="tags" value="{{if .TagsStr}}{{.TagsStr}}{{end}}">
-
-      <label><input type="checkbox" name="unread" value="1" {{if and .Bookmark .Bookmark.Unread}}checked{{end}}> Unread</label>
-      <label><input type="checkbox" name="shared" value="1" {{if and .Bookmark .Bookmark.Shared}}checked{{end}}> Shared</label>
-
-      <div class="actions-row">
-        <button type="submit">{{if .IsEdit}}Save{{else}}Create{{end}}</button>
-        <a href="/">Cancel</a>
+<body class="app-body">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="/" aria-label="Lynk home"><span class="brand-mark" aria-hidden="true">↗</span><span>lynk</span></a>
+      <div class="sidebar-label">Workspace</div>
+      <nav class="side-nav">
+        <a href="/" aria-current="page"><span class="nav-icon" aria-hidden="true">⌂</span>Bookmarks</a>
+        <a href="/settings/tokens"><span class="nav-icon" aria-hidden="true">◇</span>API tokens</a>
+        {{if .IsAdmin}}<a href="/admin/users"><span class="nav-icon" aria-hidden="true">♙</span>Admin</a>{{end}}
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="user-card"><span class="user-avatar" aria-hidden="true">L</span><span><strong>Personal space</strong><small>Private workspace</small></span></div>
+      <form method="POST" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button type="submit" class="linklike logout"><span class="nav-icon" aria-hidden="true">↪</span>Sign out</button>
+      </form>
+    </aside>
+    <main class="main-content">
+      <div class="content-width">
+        <a class="back-link" href="/">← Back to bookmarks</a>
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Library</p>
+            <h1>{{if .IsEdit}}Edit bookmark{{else}}Save a bookmark{{end}}</h1>
+            <p class="lede">{{if .IsEdit}}Refine the details so this link stays useful.{{else}}Keep a useful link, note, or resource within easy reach.{{end}}</p>
+          </div>
+        </header>
+        {{if .Error}}<div class="alert error" role="alert"><span class="alert-icon" aria-hidden="true">!</span><div>{{.Error}}</div></div>{{end}}
+        <div class="form-card">
+          <form method="POST" action="{{if .IsEdit}}/bookmarks/{{.Bookmark.ID}}/edit{{else}}/bookmarks{{end}}">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <div class="field">
+              <label for="url">URL <span aria-hidden="true">*</span></label>
+              <input type="url" id="url" name="url" value="{{if .Bookmark}}{{.Bookmark.URL}}{{end}}" required autocomplete="url" placeholder="https://example.com/article">
+            </div>
+            <div class="field">
+              <label for="title">Title</label>
+              <input type="text" id="title" name="title" value="{{if .Bookmark}}{{.Bookmark.Title}}{{end}}" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="description">Description</label>
+              <textarea id="description" name="description" placeholder="What makes this worth returning to?">{{if .Bookmark}}{{.Bookmark.Description}}{{end}}</textarea>
+            </div>
+            <div class="field">
+              <label for="notes">Notes</label>
+              <textarea id="notes" name="notes" placeholder="Private notes for later">{{if .Bookmark}}{{.Bookmark.Notes}}{{end}}</textarea>
+            </div>
+            <div class="field">
+              <label for="tags">Tags <span class="hint">(comma-separated)</span></label>
+              <input type="text" id="tags" name="tags" value="{{if .TagsStr}}{{.TagsStr}}{{end}}" placeholder="design, reading, reference">
+            </div>
+            <div class="check-row">
+              <label><input type="checkbox" name="unread" value="1" {{if and .Bookmark .Bookmark.Unread}}checked{{end}}> Mark as unread</label>
+              <label><input type="checkbox" name="shared" value="1" {{if and .Bookmark .Bookmark.Shared}}checked{{end}}> Share this bookmark</label>
+            </div>
+            <div class="actions-row">
+              <button class="primary" type="submit">{{if .IsEdit}}Save changes{{else}}Create bookmark{{end}}</button>
+              <a href="/">Cancel</a>
+            </div>
+          </form>
+        </div>
       </div>
-    </form>
+    </main>
   </div>
 </body>
 </html>

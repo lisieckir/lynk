@@ -4,73 +4,102 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Users - Lynk</title>
+  <title>Admin users - Lynk</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-  <div class="container">
-    <header class="topbar">
-      <h1>Lynk - Admin</h1>
-      <nav>
-        <a href="/">Bookmarks</a> |
-        <a href="/settings/tokens">Tokens</a> |
-        <a href="/admin/users">Admin Users</a>
-        <form method="POST" action="/logout" class="inline">
-          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-          <button type="submit" class="linklike">Logout</button>
-        </form>
+<body class="app-body">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="/" aria-label="Lynk home"><span class="brand-mark" aria-hidden="true">↗</span><span>lynk</span></a>
+      <div class="sidebar-label">Workspace</div>
+      <nav class="side-nav">
+        <a href="/"><span class="nav-icon" aria-hidden="true">⌂</span>Bookmarks</a>
+        <a href="/settings/tokens"><span class="nav-icon" aria-hidden="true">◇</span>API tokens</a>
+        <a href="/admin/users" aria-current="page"><span class="nav-icon" aria-hidden="true">♙</span>Admin</a>
       </nav>
-    </header>
-    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
-    {{if .Success}}<div class="success">{{.Success}}</div>{{end}}
-    <h2>Create user</h2>
-    <form method="POST" action="/admin/users">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <label for="username">Username</label>
-      <input type="text" id="username" name="username" required>
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" required>
-      <button type="submit">Create user</button>
-    </form>
-    <h2>Users</h2>
-    <table class="bookmarks">
-      <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Disabled</th><th>Actions</th></tr></thead>
-      <tbody>
-      {{range .Users}}
-        <tr>
-          <td>{{.ID}}</td>
-          <td>{{.Username}}</td>
-          <td>{{.Role}}</td>
-          <td>{{if .Disabled}}yes{{else}}no{{end}}</td>
-          <td>
-            <a href="/admin/users/{{.ID}}/tokens">Tokens</a>
-            {{if .Disabled}}
-            <form method="POST" action="/admin/users/action" class="inline">
-              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-              <input type="hidden" name="action" value="enable">
-              <input type="hidden" name="user_id" value="{{.ID}}">
-              <button type="submit">Enable</button>
+      <div class="sidebar-spacer"></div>
+      <div class="user-card"><span class="user-avatar" aria-hidden="true">A</span><span><strong>Administration</strong><small>Instance settings</small></span></div>
+      <form method="POST" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button type="submit" class="linklike logout"><span class="nav-icon" aria-hidden="true">↪</span>Sign out</button>
+      </form>
+    </aside>
+    <main class="main-content">
+      <div class="content-width">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Administration</p>
+            <h1>Users</h1>
+            <p class="lede">Manage access to this Lynk instance and its API credentials.</p>
+          </div>
+        </header>
+        {{if .Error}}<div class="alert error" role="alert"><span class="alert-icon" aria-hidden="true">!</span><div>{{.Error}}</div></div>{{end}}
+        {{if .Success}}<div class="alert success" role="status"><span class="alert-icon" aria-hidden="true">✓</span><div>{{.Success}}</div></div>{{end}}
+        <div class="split-grid">
+          <section class="panel-card" aria-labelledby="create-user-heading">
+            <h2 id="create-user-heading">Create a user</h2>
+            <p class="hint">New users can sign in immediately after creation.</p>
+            <form method="POST" action="/admin/users">
+              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+              <div class="field">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="password">Temporary password</label>
+                <input type="password" id="password" name="password" required autocomplete="new-password">
+              </div>
+              <button class="primary" type="submit">Create user</button>
             </form>
-            {{else}}
-            <form method="POST" action="/admin/users/action" class="inline">
-              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-              <input type="hidden" name="action" value="disable">
-              <input type="hidden" name="user_id" value="{{.ID}}">
-              <button type="submit">Disable</button>
-            </form>
-            {{end}}
-            <form method="POST" action="/admin/users/action" class="inline">
-              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-              <input type="hidden" name="action" value="reset_password">
-              <input type="hidden" name="user_id" value="{{.ID}}">
-              <input type="text" name="new_password" placeholder="new pass" required style="width:90px;" maxlength="72">
-              <button type="submit">Reset PW</button>
-            </form>
-          </td>
-        </tr>
-      {{end}}
-      </tbody>
-    </table>
+          </section>
+          <section class="panel-card" aria-labelledby="user-list-heading">
+            <div class="section-heading"><h2 id="user-list-heading">All users</h2><span class="meta">{{len .Users}} total</span></div>
+            <div class="table-card admin-table">
+              <table class="bookmarks">
+                <thead><tr><th scope="col">User</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+                <tbody>
+                {{range .Users}}
+                  <tr>
+                    <td data-label="User"><strong>{{.Username}}</strong><div class="meta">ID {{.ID}}</div></td>
+                    <td data-label="Role">{{if eq .Role "admin"}}<span class="badge admin">Admin</span>{{else}}<span class="badge">{{.Role}}</span>{{end}}</td>
+                    <td data-label="Status">{{if .Disabled}}<span class="badge disabled">Disabled</span>{{else}}<span class="badge active">Active</span>{{end}}</td>
+                    <td class="actions" data-label="Actions">
+                      <div class="admin-actions">
+                        <a href="/admin/users/{{.ID}}/tokens">Tokens</a>
+                        {{if .Disabled}}
+                        <form method="POST" action="/admin/users/action">
+                          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                          <input type="hidden" name="action" value="enable">
+                          <input type="hidden" name="user_id" value="{{.ID}}">
+                          <button type="submit">Enable</button>
+                        </form>
+                        {{else}}
+                        <form method="POST" action="/admin/users/action">
+                          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                          <input type="hidden" name="action" value="disable">
+                          <input type="hidden" name="user_id" value="{{.ID}}">
+                          <button type="submit">Disable</button>
+                        </form>
+                        {{end}}
+                        <form method="POST" action="/admin/users/action">
+                          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                          <input type="hidden" name="action" value="reset_password">
+                          <input type="hidden" name="user_id" value="{{.ID}}">
+                          <label class="visually-hidden" for="new-password-{{.ID}}">New password for {{.Username}}</label>
+                          <input type="text" id="new-password-{{.ID}}" name="new_password" placeholder="new password" required maxlength="72" autocomplete="new-password">
+                          <button type="submit">Reset</button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                {{end}}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
   </div>
 </body>
 </html>

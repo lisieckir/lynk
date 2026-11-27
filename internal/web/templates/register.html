@@ -4,23 +4,40 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Register - Lynk</title>
+  <title>Create admin account - Lynk</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-  <div class="container">
-    <h1>Lynk</h1>
-    <h2>Create admin account</h2>
-    {{if .Error}}<div class="error">Error: {{.Error}}</div>{{end}}
-    <form method="POST" action="/register">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <label for="username">Username</label>
-      <input type="text" id="username" name="username" autocomplete="username" required minlength="3" maxlength="64">
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8" maxlength="72">
-      <button type="submit">Create account</button>
-    </form>
-    <p class="hint">First account becomes admin. Registration closes after the first account is created.</p>
+<body class="auth-body">
+  <div class="auth-layout">
+    <aside class="auth-aside">
+      <a class="brand" href="/register" aria-label="Lynk registration"><span class="brand-mark" aria-hidden="true">↗</span><span>lynk</span></a>
+      <h1>Start with a better bookmark habit.</h1>
+      <p>Set up your private link library in less than a minute. Your first account becomes the administrator.</p>
+      <ul class="auth-points">
+        <li>Simple, focused bookmark management</li>
+        <li>Fast search and thoughtful organization</li>
+        <li>No third-party services required</li>
+      </ul>
+    </aside>
+    <main class="auth-panel">
+      <p class="eyebrow">First run</p>
+      <h2>Create your admin account</h2>
+      <p class="subheading">You’ll use this account to manage your Lynk instance.</p>
+      {{if .Error}}<div class="alert error" role="alert"><span class="alert-icon" aria-hidden="true">!</span><div>{{.Error}}</div></div>{{end}}
+      <form method="POST" action="/register">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username" required minlength="3" maxlength="64" autofocus>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8" maxlength="72">
+        </div>
+        <div class="button-row"><button class="primary" type="submit">Create account</button></div>
+      </form>
+      <p class="hint">Registration closes after the first account is created.</p>
+    </main>
   </div>
 </body>
 </html>

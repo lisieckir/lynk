@@ -58,6 +58,7 @@ pierwszego administratora.
 | 2026-11-27 | `IN_PROGRESS` | Iceman Free | Przydzielono account/admin/token lifecycle |
 | 2026-11-27 | `REVIEW` | Iceman Free | `70c96fe`/`3f58478` implementują lifecycle; niezależny security review w toku |
 | 2026-11-27 | `BLOCKED` | Big Pickle | REQUEST CHANGES: register CSRF HIGH, concurrent first-admin HIGH, token URL leak HIGH, stale sessions/admin revoke/audit/tests gaps |
+| 2026-11-27 | `BLOCKED` | PO | `cdbf56a` fixes HIGH/session epoch, but admin token UI, audit logs, registration limit, full regressions and Docker smoke remain |
 
 ## Blockery
 

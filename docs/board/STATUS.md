@@ -84,6 +84,7 @@ Właściciel tablicy: PO / koordynator projektu
 | 2026-11-27 | P2-012 | Request changes | `cdbf56a` fixes core HIGHs; remaining admin token UI/audit/rate-limit/tests/Docker gaps assigned | PO |
 | 2026-11-27 | P2-012 | Request changes | Second-pass UI/logging changes uncommitted; critical regressions and isolated Docker smoke still required | PO |
 | 2026-11-27 | P2-012 | Request changes | UI/logging committed and health smoke PASS; required account regression tests/full register-token-API flow still missing | PO |
+| 2026-11-27 | P2-012 | Review pending | `8c9f144` supplies 9 acceptance tests and Docker flow PASS; final security review in progress | PO |
 
 ## Historia zmian tablicy
 

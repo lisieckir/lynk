@@ -2,7 +2,7 @@
 
 | Pole | Wartość |
 |---|---|
-| Status | `IN_PROGRESS` |
+| Status | `REVIEW` |
 | Priorytet | `P0` |
 | Owner | Iceman Free |
 | Faza | Phase 3/5 auth hardening |
@@ -56,3 +56,4 @@ pierwszego administratora.
 | Data | Status | Agent | Opis |
 |---|---|---|---|
 | 2026-11-27 | `IN_PROGRESS` | Iceman Free | Przydzielono account/admin/token lifecycle |
+| 2026-11-27 | `REVIEW` | Iceman Free | `70c96fe`/`3f58478` implementują lifecycle; niezależny security review w toku |

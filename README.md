@@ -32,6 +32,12 @@ See [development.md](docs/development.md#netscape-html-importexport-p2-010)
 for the tag/folder and archived/unread mapping, bounds, atomicity and clobber
 policy.
 
+## Accounts and tokens (web)
+
+* On a fresh database, open the web UI to register the first admin account (registration is then closed).
+* Users can sign in with username/password or a legacy API token; API tokens can be managed under **Tokens** and work with the official Linkding extension (`Authorization: Token <token>`).
+* Admins can manage users and tokens from the **Admin** panel.
+
 ## Documentation
 
 * [Specification](docs/SPEC.md)
